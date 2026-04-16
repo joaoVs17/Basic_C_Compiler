@@ -1,12 +1,15 @@
+ //if you like pina colladas
 #include <stdio.h>
 
 int main()
 {
-  int x = 10;         // declaração simples
+  int x = 10 1#adas;         // declaração simples
   float y = 3.14;     // número decimal
+  float z = 5.4.3..   // número inválido múltiplos pontos
   string s = "Hello"; // string literal
   char c = 'A';       // char literal
-
+  '"';
+  ";
   // Comentário de linha
   /* Comentário
      de múltiplas

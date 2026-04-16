@@ -1,32 +1,82 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include "lexer.h"
 
-typedef enum
+int is_valid_token_start(int c)
 {
-  KEYWORD,
-  IDENTIFIER,
-  NUMBER,
-  OPERATOR,
-  SEPARATOR,
-  COMMENT,
-  LITERAL,
-  UNKNOWN,
-} TokenType;
+  return c == '_' || c == '+' || c == '-' || c == '/' || c == '%';
+}
 
-typedef struct
+void update_pointer_position(Pointer *p)
 {
-  TokenType type;
-  char *lex;
-} Token;
+  if (p->value == '\n')
+  {
+    p->col = 1;
+    p->row += 1;
+  }
+  else
+  {
+    p->col += 1;
+  }
+}
 
-Token *readliteral(FILE *file, int colc, int rowc);
-Token *readcomment(FILE *file);
-Token *readkeyword_or_identifier(FILE *file);
-Token *create_token(TokenType type, char *lex);
-Token *readseparator(FILE *file);
-Token *readoperator(FILE *file);
-Token *readnumber(FILE *file);
+void update_pointer_state(Pointer *p)
+{
+  if (p == NULL)
+    return;
+  if (p->reading_state == NONE)
+  {
+  }
+}
+
+int advance_pointer(Pointer *p)
+{
+  p->value = fgetc(p->stream);
+  if (p->value == EOF)
+    return 0;
+  update_pointer_position(p);
+  update_pointer_state(p);
+}
+
+int advance_pointer_n(Pointer *p, int n)
+{
+  int res = 1;
+  for (int i = 0; i < n; i++)
+  {
+    if (!advance_pointer(p))
+    {
+      res = 0;
+      break;
+    }
+  }
+  return res;
+}
+int change_pointer_state(Pointer *p, TokenType state)
+{
+  if (p == NULL)
+    return 0;
+  p->reading_state = state;
+  return 1;
+}
+
+int read_next_token(Pointer *p)
+{
+  if (p == NULL)
+    return 0;
+  if (p->reading_state != NONE)
+    return 0;
+
+  while (!is_valid_token_start(p->value))
+  {
+    advance_pointer(p);
+  }
+}
+
+Token *readliteral(FILE *file, int *colc, int *rowc);
+Token *readcomment(FILE *file, int *colc, int *rowc);
+Token *readkeyword_or_identifier(FILE *file, int *colc, int *rowc);
+Token *create_token(TokenType type, char *lex, int row, int col);
+Token *readseparator(FILE *file, int *colc, int *rowc);
+Token *readoperator(FILE *file, int *colc, int *rowc);
+Token *readnumber(FILE *file, int *colc, int *rowc);
 
 void prt_token(Token *t, int br);
 int iskeyword(char *str);
@@ -34,76 +84,9 @@ char *read_file(FILE *file, int start_pos, int char_no);
 int is_operator_start(int cc);
 int is_separator_start(char c);
 int peek(FILE *file);
+void increment_counters(int *colc, int *rowc, int cc);
 
-int main()
-{
-  FILE *file;
-  file = fopen("lexer-test2.c", "r");
-  int i = 3;
-  if (file == NULL)
-    return 1;
 
-  int cc;
-  int colc = 1, rowc = 1;
-
-  do
-  {
-    cc = fgetc(file);
-    colc += 1;
-    if (cc == '\n')
-    {
-      colc = 1;
-      rowc += 1;
-    };
-    if (cc == ' ' || cc == '\t' || cc == '\n' || cc == EOF)
-      continue;
-    if (cc == '\"' || cc == '\'')
-    {
-      prt_token(readliteral(file, colc, rowc), 1);
-    }
-    else if (cc == '/')
-    {
-      int temp = peek(file);
-      if (temp == '/' || temp == '*')
-        prt_token(readcomment(file), 1);
-      else
-      {
-        prt_token(readoperator(file), 1);
-      }
-    }
-    // else if ((cc >= 'a' && cc <= 'z') || (cc >= 'A' && cc <= 'Z') || cc == '_')
-    // {
-    //   prt_token(readkeyword_or_identifier(file), 1);
-    // }
-    else if (is_separator_start(cc))
-    {
-      if (cc == '-' && peek(file) != '>')
-      {
-        prt_token(readoperator(file), 1);
-      }
-      else
-      {
-        prt_token(readseparator(file), 1);
-      }
-    }
-    else if (is_operator_start(cc))
-    {
-      prt_token(readoperator(file), 1);
-    }
-    else if (cc >= '0' && cc <= '9')
-    {
-      prt_token(readnumber(file), 1);
-    }
-    else
-    {
-      prt_token(readkeyword_or_identifier(file), 1);
-    }
-
-  } while (cc != EOF);
-
-  fclose(file);
-  return 0;
-}
 
 int is_operator_start(int cc)
 {
@@ -153,7 +136,7 @@ int isliteralend(FILE *file)
   return (count % 2 == 0);
 }
 
-Token *readliteral(FILE *file, int colc, int rowc)
+Token *readliteral(FILE *file, int *colc, int *rowc)
 {
   fseek(file, -1, SEEK_CUR);
   long spos = ftell(file);
@@ -161,6 +144,8 @@ Token *readliteral(FILE *file, int colc, int rowc)
   int pc = cc;
   int rdcnt = 1;
   int unclosed = 0;
+  int col = *colc;
+  int row = *rowc;
   while (1)
   {
     cc = fgetc(file);
@@ -169,33 +154,37 @@ Token *readliteral(FILE *file, int colc, int rowc)
       break;
     if (cc == EOF || cc == '\n')
     {
+      increment_counters(colc, rowc, cc);
       unclosed = 1;
       break;
     }
+    increment_counters(colc, rowc, cc);
   }
   char *str = read_file(file, spos, rdcnt);
   Token *t;
   if (unclosed)
   {
-    t = create_token(UNKNOWN, str);
+    t = create_token(UNKNOWN, str, row, col);
   }
   else
   {
-    t = create_token(LITERAL, str);
+    t = create_token(LITERAL, str, row, col);
   }
   free(str);
   return t;
 }
 
-Token *readcomment(FILE *file)
+Token *readcomment(FILE *file, int *colc, int *rowc)
 {
   fseek(file, -1, SEEK_CUR);
   long spos = ftell(file);
   int cc = fgetc(file);
   int pc = cc;
   int rdcnt = 1;
-
+  int col = *colc;
+  int row = *rowc;
   cc = fgetc(file);
+  increment_counters(colc, rowc, cc);
   if (cc == '/')
   {
     while (1)
@@ -206,6 +195,7 @@ Token *readcomment(FILE *file)
       {
         break;
       }
+      increment_counters(colc, rowc, cc);
     }
   }
   else if (cc == '*')
@@ -223,81 +213,91 @@ Token *readcomment(FILE *file)
         }
       }
     }
+    increment_counters(colc, rowc, cc);
   }
   Token *t;
   char *str = read_file(file, spos, rdcnt);
-  t = create_token(COMMENT, str);
+  t = create_token(COMMENT, str, row, col);
   free(str);
   return t;
 }
 
-Token *readkeyword_or_identifier(FILE *file)
+Token *readkeyword_or_identifier(FILE *file, int *colc, int *rowc)
 {
   fseek(file, -1, SEEK_CUR);
   long spos = ftell(file);
   int cc = fgetc(file);
   int pc = cc;
   int rdcnt = 1;
+  int col = *colc;
+  int row = *rowc;
   int has_invalid_char = !((cc >= 'a' && cc <= 'z') || (cc >= 'A' && cc <= 'Z') || cc == '_');
   while (1)
   {
     cc = fgetc(file);
     rdcnt += 1;
 
-    if (is_separator_start(cc) || cc == ' ' || cc == '\n' || cc == '/')
+    if ((is_separator_start(cc)) || is_operator_start(cc) || cc == ' ' || cc == '\n' || cc == '/')
     {
+      increment_counters(colc, rowc, cc);
       break;
     }
     if (!((cc >= 'a' && cc <= 'z') || (cc >= 'A' && cc <= 'Z') || (cc >= '0' && cc <= '9') || cc == '_'))
     {
       has_invalid_char += 1;
     }
+    increment_counters(colc, rowc, cc);
   }
   char *str = read_file(file, spos, rdcnt - 1);
   Token *t;
   if (has_invalid_char)
   {
-    t = create_token(UNKNOWN, str);
+    t = create_token(UNKNOWN, str, row, col);
     free(str);
     return t;
   }
   if (iskeyword(str))
   {
-    t = create_token(KEYWORD, str);
+    t = create_token(KEYWORD, str, row, col);
   }
   else
   {
-    t = create_token(IDENTIFIER, str);
+    t = create_token(IDENTIFIER, str, row, col);
   }
   free(str);
   return t;
 }
 
-Token *readoperator(FILE *file)
+Token *readoperator(FILE *file, int *colc, int *rowc)
 {
   fseek(file, -1, SEEK_CUR);
   long spos = ftell(file);
   int cc = fgetc(file);
   int pc = cc;
   int rdcnt = 1;
-
+  int col = *colc;
+  int row = *rowc;
   int next = peek(file);
   int c1 = ((cc == '+' || cc == '-') && next == cc);
   int c2 = ((cc == '+' || cc == '-' || cc == '*' || cc == '/' || cc == '=' || cc == '!' || cc == '%') && next == '=');
   int c3 = ((cc == '<' || cc == '>') && (next == '=' || next == cc));
   int c4 = ((cc == '&' || cc == '|') && next == cc);
 
+  increment_counters(colc, rowc, cc);
   if (c1 || c2 || c3 || c4)
+  {
     rdcnt = 2;
+    increment_counters(colc, rowc, cc);
+  }
 
   Token *t;
   char *str = read_file(file, spos, rdcnt);
-  t = create_token(OPERATOR, str);
+  t = create_token(OPERATOR, str, row, col);
 
   return t;
 }
 
-Token *readseparator(FILE *file)
+Token *readseparator(FILE *file, int *colc, int *rowc)
 {
   fseek(file, -1, SEEK_CUR);
   long spos = ftell(file);
@@ -306,18 +306,22 @@ Token *readseparator(FILE *file)
   int rdcnt = 1;
 
   Token *t;
+  int col = *colc;
+  int row = *rowc;
 
+  increment_counters(colc, rowc, cc);
   if (cc == '-')
   {
     rdcnt = 2;
+    increment_counters(colc, rowc, cc);
   };
   char *str = read_file(file, spos, rdcnt);
-  t = create_token(SEPARATOR, str);
+  t = create_token(SEPARATOR, str, row, col);
   free(str);
   return t;
 }
 
-Token *readnumber(FILE *file)
+Token *readnumber(FILE *file, int *colc, int *rowc)
 {
   fseek(file, -1, SEEK_CUR);
   long spos = ftell(file);
@@ -326,8 +330,11 @@ Token *readnumber(FILE *file)
   int rdcnt = 1;
   int dotc = 0;
   int hasinvalidchar = 0;
+  int col = *colc;
+  int row = *rowc;
   while (1)
   {
+
     cc = fgetc(file);
     rdcnt += 1;
     if (cc == '.')
@@ -338,17 +345,18 @@ Token *readnumber(FILE *file)
     }
     if (!(cc >= '0' && cc <= '9') && cc != '.')
       hasinvalidchar = 1;
+    increment_counters(colc, rowc, cc);
   }
 
   Token *t;
   char *str = read_file(file, spos, rdcnt - 1);
   if (dotc > 1 || hasinvalidchar || str[rdcnt - 2] == '.')
   {
-    t = create_token(UNKNOWN, str);
+    t = create_token(UNKNOWN, str, row, col);
   }
   else
   {
-    t = create_token(NUMBER, str);
+    t = create_token(NUMBER, str, row, col);
   }
 
   free(str);
@@ -417,10 +425,12 @@ char *read_file(FILE *file, int start_pos, int char_no)
   return str;
 }
 
-Token *create_token(TokenType type, char *lex)
+Token *create_token(TokenType type, char *lex, int row, int col)
 {
   Token *t = (Token *)malloc(sizeof(Token));
   t->type = type;
+  t->row = row;
+  t->col = col;
   t->lex = (char *)malloc(strlen(lex) + 1);
   strcpy(t->lex, lex);
   return t;
@@ -456,7 +466,21 @@ void prt_token(Token *t, int br)
     printf("type: UNKNOWN");
     break;
   }
+  printf(", row: %d, col: %d", t->row, t->col);
   printf("}");
   if (br)
     printf("\n");
+}
+
+void increment_counters(int *colc, int *rowc, int cc)
+{
+  if (cc == '\n')
+  {
+    *rowc += 1;
+    *colc = 0;
+  }
+  else
+  {
+    *colc += 1;
+  }
 }

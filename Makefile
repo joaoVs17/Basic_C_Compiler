@@ -1,28 +1,23 @@
-# Nome do compilador
 CC = gcc
-
-# Flags de compilação
 CFLAGS = -Wall -Wextra -std=c11
+TARGET = main
 
-# Nome do executável
-TARGET = programa
+SRC = src/main.c src/pointer.c
+OBJ = $(SRC:.c=.o)
 
-# Arquivo fonte
-SRC = src/lexer.c
-
-# Regra padrão
 all: $(TARGET)
 
+$(TARGET): $(OBJ)
+	$(CC) $(CFLAGS) -o $(TARGET) $(OBJ)
 
-$(TARGET): $(SRC)
-	$(CC) $(CFLAGS) -o $(TARGET) $(SRC)
+src/%.o: src/%.c src/pointer.h
+	$(CC) $(CFLAGS) -c $< -o $@
 
 run: $(TARGET)
 	./$(TARGET)
-	
+
 val: $(TARGET)
 	valgrind --leak-check=full --show-leak-kinds=all ./$(TARGET)
 
-# Limpar arquivos gerados
 clean:
-	rm -f $(TARGET)
+	rm -f $(TARGET) $(OBJ)
