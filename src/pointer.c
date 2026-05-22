@@ -272,6 +272,10 @@ ReadingState detect_start_state(int c) {
 
 void prt_token(Token *t, int br)
 {
+  if (t == NULL) {
+    printf("TOKEN NULO \n");
+    return;
+  }
   printf("{lex: %s, ", t->lex);
   switch (t->type)
   {

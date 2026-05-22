@@ -8,13 +8,20 @@ int main()
     return 1;
   }; 
 
-  for (int i=0; i<70; i++) {
-    read_next_token(p, 0);
+  int sline = 22;
+  int eline = 23;
+
+  while (p->row < sline) {
+    Token * tk= read_next_token(p, 0);
+    if (p->row == sline) {
+      prt_token(tk, 1);
+    }
   }
-  for (int i=0; i<11; i++) {
+
+  while (p->row < eline + 1) {
     read_next_token(p, 1);
   }
-  
+
   free(p);
   return 0;
 }
