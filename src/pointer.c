@@ -68,6 +68,29 @@ void update_pointer_position(Pointer *p)
   p->curr_pos = ftell(p->stream);
 }
 
+void emit_token(Pointer *p)
+{
+  p->token = get_token_from_pointer(p);
+}
+
+void restart_at_current_char(Pointer *p)
+{
+  p->reading_state = detect_start_state(p->value);
+  update_pivot(p);
+}
+
+void emit_and_restart(Pointer *p)
+{
+  emit_token(p);
+  restart_at_current_char(p);
+}
+
+void emit_and_go_to(Pointer *p, ReadingState state)
+{
+  emit_token(p);
+  p->reading_state = state;
+}
+
 void update_pointer_state(Pointer *p)
 {
   int c = p->value;
@@ -91,44 +114,33 @@ void update_pointer_state(Pointer *p)
 
   //Transition rules
   else if (p->reading_state == STATE_COMMENT_LINE && p->value == '\n') {
-    p->token = get_token_from_pointer(p);
-    p->reading_state = STATE_INITIAL;
+    emit_and_go_to(p, STATE_INITIAL);
   } else if(p->reading_state == STATE_ERROR) {
     if ((is_separator_start(c))) {
-      p->token = get_token_from_pointer(p);
-      p->reading_state = STATE_SEPARATOR;
+      emit_and_go_to(p, STATE_SEPARATOR);
       update_pivot(p);
     } else if (c == ' ' || c == '\n' || c == '\t') {
-      p->token = get_token_from_pointer(p);
-      p->reading_state = STATE_INITIAL;
+      emit_and_go_to(p, STATE_INITIAL);
     }
   } else if (p->reading_state == STATE_IDENTIFIER ) {
     if ((is_separator_start(c))) {
-      p->token = get_token_from_pointer(p);
-      p->reading_state = STATE_SEPARATOR;
+      emit_and_go_to(p, STATE_SEPARATOR);
       update_pivot(p);
     } else if (c == ' ' || c == '\n' || c == '\t') {
-      p->token = get_token_from_pointer(p);
-      p->reading_state = STATE_INITIAL;
+      emit_and_go_to(p, STATE_INITIAL);
     }
   } else if (p->reading_state == STATE_SEPARATOR) {
     if (c == ';') {
       printf("DSA\n");
     }
-    p->token = get_token_from_pointer(p);
-    p->reading_state = detect_start_state(p->value);
-    update_pivot(p);
+    emit_and_restart(p);
   } else if (p->reading_state == STATE_OPERATOR) {
-    p->token = get_token_from_pointer(p);
-    p->reading_state = detect_start_state(p->value);
-    update_pivot(p);   
+    emit_and_restart(p);
   } else if (p->reading_state == STATE_NUMBER) {
     if (c == '.') {
       p->reading_state = STATE_FLOAT_NUMBER_WITHOUT_DECIMAL;
     } else if ((is_separator_char(c) && c != '.') || c == ' ' || c == '\t' || c== '\n' || is_operator_char(c)) {
-      p->token = get_token_from_pointer(p);
-      p->reading_state = detect_start_state(p->value);
-      update_pivot(p);
+      emit_and_restart(p);
     } else {
       if (!is_digit(c)) {
         // p->token = get_token_from_pointer(p);
@@ -146,9 +158,7 @@ void update_pointer_state(Pointer *p)
     if (c == '.') {
       p->reading_state = STATE_ERROR_NUMBER_MANY_DOTS;
     } else if ((is_separator_char(c) && c != '.') || c == ' ' || c == '\t' || c== '\n' || is_operator_char(c)) {
-      p->token = get_token_from_pointer(p);
-      p->reading_state = detect_start_state(p->value);
-      update_pivot(p);
+      emit_and_restart(p);
     } else {
       if (!is_digit(c)) {
         // p->token = get_token_from_pointer(p);
@@ -158,39 +168,31 @@ void update_pointer_state(Pointer *p)
     } 
   } else if (p->reading_state == STATE_ERROR_NUMBER_MANY_DOTS) {
     if (((is_separator_start(c) && c != '.'))) {
-      p->token = get_token_from_pointer(p);
-      p->reading_state = STATE_SEPARATOR;
+      emit_and_go_to(p, STATE_SEPARATOR);
       update_pivot(p);
     } else if (c == ' ' || c == '\n' || c == '\t') {
-      p->token = get_token_from_pointer(p);
-      p->reading_state = STATE_INITIAL;
+      emit_and_go_to(p, STATE_INITIAL);
     }
   } else if (p->reading_state == STATE_OPEN_LITERAL) {
     if (c == '\"') {
       p->reading_state = STATE_CLOSED_LITERAL;
     } else if (c == '\n') {
       p->reading_state = STATE_ERROR;
-      p->token = get_token_from_pointer(p);
-      p->reading_state = STATE_INITIAL;
+      emit_and_go_to(p, STATE_INITIAL);
       update_pivot(p);
     }
   } else if(p->reading_state == STATE_CLOSED_LITERAL) {
-    p->token = get_token_from_pointer(p);
-    p->reading_state = detect_start_state(p->value);
-    update_pivot(p);
+    emit_and_restart(p);
   } else if (p->reading_state == STATE_OPEN_SIMPLE_LITERAL) {
     if (c == '\'') {
       p->reading_state = STATE_CLOSED_SIMPLE_LITERAL;
     } else if (c == '\n') {
       p->reading_state = STATE_ERROR;
-      p->token = get_token_from_pointer(p);
-      p->reading_state = STATE_INITIAL;
+      emit_and_go_to(p, STATE_INITIAL);
       update_pivot(p);
     }
   } else if(p->reading_state == STATE_CLOSED_SIMPLE_LITERAL) {
-    p->token = get_token_from_pointer(p);
-    p->reading_state = detect_start_state(p->value);
-    update_pivot(p);
+    emit_and_restart(p);
   }
 
 

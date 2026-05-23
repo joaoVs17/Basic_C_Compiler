@@ -2,3 +2,4 @@ vgcore.*
 programa
 lexer
 *.o
+main
