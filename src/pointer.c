@@ -91,111 +91,208 @@ void emit_and_go_to(Pointer *p, ReadingState state)
   p->reading_state = state;
 }
 
+// HANDLE TRANSITIONS
+
+void handle_initial_transition(Pointer *p, int c)
+{
+  ReadingState tt = detect_start_state(c);
+  set_pointer_state(p, tt);
+
+  //After change from NONE to any reading state, must set the pivot position as current position
+  //pointer must update the pos
+  p->pivot_col = p->col;
+  p->pivot_row = p->row;
+  p->pivot_pos = p->curr_pos - 1;
+}
+
+void handle_slash_transition(Pointer *p, int c)
+{
+  if (c == '/') {
+    p->reading_state = STATE_COMMENT_LINE;
+  }
+}
+
+void handle_comment_line_transition(Pointer *p, int c)
+{
+  if (c == '\n') {
+    emit_and_go_to(p, STATE_INITIAL);
+  }
+}
+
+void handle_error_transition(Pointer *p, int c)
+{
+  if ((is_separator_start(c))) {
+    emit_and_go_to(p, STATE_SEPARATOR);
+    update_pivot(p);
+  } else if (c == ' ' || c == '\n' || c == '\t') {
+    emit_and_go_to(p, STATE_INITIAL);
+  }
+}
+
+void handle_identifier_transition(Pointer *p, int c)
+{
+  if ((is_separator_start(c))) {
+    emit_and_go_to(p, STATE_SEPARATOR);
+    update_pivot(p);
+  } else if (c == ' ' || c == '\n' || c == '\t') {
+    emit_and_go_to(p, STATE_INITIAL);
+  }
+}
+
+void handle_separator_transition(Pointer *p, int c)
+{
+  if (c == ';') {
+    printf("DSA\n");
+  }
+  emit_and_restart(p);
+}
+
+void handle_operator_transition(Pointer *p, int c)
+{
+  (void)c;
+  emit_and_restart(p);
+}
+
+void handle_number_transition(Pointer *p, int c)
+{
+  if (c == '.') {
+    p->reading_state = STATE_FLOAT_NUMBER_WITHOUT_DECIMAL;
+  } else if ((is_separator_char(c) && c != '.') || c == ' ' || c == '\t' || c== '\n' || is_operator_char(c)) {
+    emit_and_restart(p);
+  } else {
+    if (!is_digit(c)) {
+      // p->token = get_token_from_pointer(p);
+      p->reading_state = STATE_ERROR;
+      // update_pivot(p);
+    }
+  }
+}
+
+void handle_float_number_without_decimal_transition(Pointer *p, int c)
+{
+  if (is_digit(c)) {
+    p->reading_state = STATE_FLOAT_NUMBER;
+  } else {
+    p->reading_state = STATE_ERROR;
+  }
+}
+
+void handle_float_number_transition(Pointer *p, int c)
+{
+  if (c == '.') {
+    p->reading_state = STATE_ERROR_NUMBER_MANY_DOTS;
+  } else if ((is_separator_char(c) && c != '.') || c == ' ' || c == '\t' || c== '\n' || is_operator_char(c)) {
+    emit_and_restart(p);
+  } else {
+    if (!is_digit(c)) {
+      // p->token = get_token_from_pointer(p);
+      p->reading_state = STATE_ERROR;
+      // update_pivot(p);
+    }
+  }
+}
+
+void handle_error_number_many_dots_transition(Pointer *p, int c)
+{
+  if (((is_separator_start(c) && c != '.'))) {
+    emit_and_go_to(p, STATE_SEPARATOR);
+    update_pivot(p);
+  } else if (c == ' ' || c == '\n' || c == '\t') {
+    emit_and_go_to(p, STATE_INITIAL);
+  }
+}
+
+void handle_open_literal_transition(Pointer *p, int c)
+{
+  if (c == '\"') {
+    p->reading_state = STATE_CLOSED_LITERAL;
+  } else if (c == '\n') {
+    p->reading_state = STATE_ERROR;
+    emit_and_go_to(p, STATE_INITIAL);
+    update_pivot(p);
+  }
+}
+
+void handle_closed_literal_transition(Pointer *p, int c)
+{
+  (void)c;
+  emit_and_restart(p);
+}
+
+void handle_open_simple_literal_transition(Pointer *p, int c)
+{
+  if (c == '\'') {
+    p->reading_state = STATE_CLOSED_SIMPLE_LITERAL;
+  } else if (c == '\n') {
+    p->reading_state = STATE_ERROR;
+    emit_and_go_to(p, STATE_INITIAL);
+    update_pivot(p);
+  }
+}
+
+void handle_closed_simple_literal_transition(Pointer *p, int c)
+{
+  (void)c;
+  emit_and_restart(p);
+}
+
 void update_pointer_state(Pointer *p)
 {
-  int c = p->value;
   if (p == NULL)
     return;
-  if (p->reading_state == STATE_INITIAL)
+
+  int c = p->value;
+
+  switch (p->reading_state)
   {
-    ReadingState tt = detect_start_state(p->value);  
-    set_pointer_state(p, tt);
-
-    //After change from NONE to any reading state, must set the pivot position as current position
-    //pointer must update the pos
-    p->pivot_col = p->col;
-    p->pivot_row = p->row;
-    p->pivot_pos = p->curr_pos - 1;
+  case STATE_INITIAL:
+    handle_initial_transition(p, c);
+    break;
+  case STATE_SLASH:
+    handle_slash_transition(p, c);
+    break;
+  case STATE_COMMENT_LINE:
+    handle_comment_line_transition(p, c);
+    break;
+  case STATE_ERROR:
+    handle_error_transition(p, c);
+    break;
+  case STATE_IDENTIFIER:
+    handle_identifier_transition(p, c);
+    break;
+  case STATE_SEPARATOR:
+    handle_separator_transition(p, c);
+    break;
+  case STATE_OPERATOR:
+    handle_operator_transition(p, c);
+    break;
+  case STATE_NUMBER:
+    handle_number_transition(p, c);
+    break;
+  case STATE_FLOAT_NUMBER_WITHOUT_DECIMAL:
+    handle_float_number_without_decimal_transition(p, c);
+    break;
+  case STATE_FLOAT_NUMBER:
+    handle_float_number_transition(p, c);
+    break;
+  case STATE_ERROR_NUMBER_MANY_DOTS:
+    handle_error_number_many_dots_transition(p, c);
+    break;
+  case STATE_OPEN_LITERAL:
+    handle_open_literal_transition(p, c);
+    break;
+  case STATE_CLOSED_LITERAL:
+    handle_closed_literal_transition(p, c);
+    break;
+  case STATE_OPEN_SIMPLE_LITERAL:
+    handle_open_simple_literal_transition(p, c);
+    break;
+  case STATE_CLOSED_SIMPLE_LITERAL:
+    handle_closed_simple_literal_transition(p, c);
+    break;
+  default:
+    break;
   }
-  else if (p->reading_state == STATE_SLASH && p->value == '/') {
-    p->reading_state = STATE_COMMENT_LINE;
-  } 
-
-
-  //Transition rules
-  else if (p->reading_state == STATE_COMMENT_LINE && p->value == '\n') {
-    emit_and_go_to(p, STATE_INITIAL);
-  } else if(p->reading_state == STATE_ERROR) {
-    if ((is_separator_start(c))) {
-      emit_and_go_to(p, STATE_SEPARATOR);
-      update_pivot(p);
-    } else if (c == ' ' || c == '\n' || c == '\t') {
-      emit_and_go_to(p, STATE_INITIAL);
-    }
-  } else if (p->reading_state == STATE_IDENTIFIER ) {
-    if ((is_separator_start(c))) {
-      emit_and_go_to(p, STATE_SEPARATOR);
-      update_pivot(p);
-    } else if (c == ' ' || c == '\n' || c == '\t') {
-      emit_and_go_to(p, STATE_INITIAL);
-    }
-  } else if (p->reading_state == STATE_SEPARATOR) {
-    if (c == ';') {
-      printf("DSA\n");
-    }
-    emit_and_restart(p);
-  } else if (p->reading_state == STATE_OPERATOR) {
-    emit_and_restart(p);
-  } else if (p->reading_state == STATE_NUMBER) {
-    if (c == '.') {
-      p->reading_state = STATE_FLOAT_NUMBER_WITHOUT_DECIMAL;
-    } else if ((is_separator_char(c) && c != '.') || c == ' ' || c == '\t' || c== '\n' || is_operator_char(c)) {
-      emit_and_restart(p);
-    } else {
-      if (!is_digit(c)) {
-        // p->token = get_token_from_pointer(p);
-        p->reading_state = STATE_ERROR;
-        // update_pivot(p);
-      }
-    }
-  } else if(p->reading_state == STATE_FLOAT_NUMBER_WITHOUT_DECIMAL) {
-    if (is_digit(c)) {
-      p->reading_state = STATE_FLOAT_NUMBER;
-    } else {
-      p->reading_state = STATE_ERROR;
-    }
-  } else if (p->reading_state == STATE_FLOAT_NUMBER) {
-    if (c == '.') {
-      p->reading_state = STATE_ERROR_NUMBER_MANY_DOTS;
-    } else if ((is_separator_char(c) && c != '.') || c == ' ' || c == '\t' || c== '\n' || is_operator_char(c)) {
-      emit_and_restart(p);
-    } else {
-      if (!is_digit(c)) {
-        // p->token = get_token_from_pointer(p);
-        p->reading_state = STATE_ERROR;
-        // update_pivot(p);
-      }
-    } 
-  } else if (p->reading_state == STATE_ERROR_NUMBER_MANY_DOTS) {
-    if (((is_separator_start(c) && c != '.'))) {
-      emit_and_go_to(p, STATE_SEPARATOR);
-      update_pivot(p);
-    } else if (c == ' ' || c == '\n' || c == '\t') {
-      emit_and_go_to(p, STATE_INITIAL);
-    }
-  } else if (p->reading_state == STATE_OPEN_LITERAL) {
-    if (c == '\"') {
-      p->reading_state = STATE_CLOSED_LITERAL;
-    } else if (c == '\n') {
-      p->reading_state = STATE_ERROR;
-      emit_and_go_to(p, STATE_INITIAL);
-      update_pivot(p);
-    }
-  } else if(p->reading_state == STATE_CLOSED_LITERAL) {
-    emit_and_restart(p);
-  } else if (p->reading_state == STATE_OPEN_SIMPLE_LITERAL) {
-    if (c == '\'') {
-      p->reading_state = STATE_CLOSED_SIMPLE_LITERAL;
-    } else if (c == '\n') {
-      p->reading_state = STATE_ERROR;
-      emit_and_go_to(p, STATE_INITIAL);
-      update_pivot(p);
-    }
-  } else if(p->reading_state == STATE_CLOSED_SIMPLE_LITERAL) {
-    emit_and_restart(p);
-  }
-
-
 }
 
 Token * get_token_from_pointer(Pointer *p) {
