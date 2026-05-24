@@ -22,10 +22,11 @@ typedef enum
 typedef enum {
   STATE_INITIAL,
 
-  STATE_SLASH,              // viu '/'
-  STATE_COMMENT_LINE,       // //
-  STATE_COMMENT_BLOCK,      // /*
-  STATE_COMMENT_BLOCK_END,  // viu '*' dentro do bloco
+  STATE_SLASH,              
+  STATE_COMMENT_LINE,       
+  STATE_COMMENT_BLOCK,      
+  STATE_COMMENT_BLOCK_ASTERISK,  
+  STATE_COMMENT_BLOCK_END,
 
   STATE_LITERAL,
   STATE_OPEN_LITERAL,

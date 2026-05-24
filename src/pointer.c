@@ -10,6 +10,8 @@ static const char *reading_state_to_str(ReadingState s) {
     return "STATE_COMMENT_LINE";
   case STATE_COMMENT_BLOCK:
     return "STATE_COMMENT_BLOCK";
+  case STATE_COMMENT_BLOCK_ASTERISK:
+    return "STATE_COMMENT_BLOCK_ASTERISK";
   case STATE_COMMENT_BLOCK_END:
     return "STATE_COMMENT_BLOCK_END";
   case STATE_OPERATOR:
@@ -107,6 +109,8 @@ void handle_initial_transition(Pointer *p, int c) {
 void handle_slash_transition(Pointer *p, int c) {
   if (c == '/') {
     p->reading_state = STATE_COMMENT_LINE;
+  } else if (c == '*') {
+    p->reading_state = STATE_COMMENT_BLOCK;
   }
 }
 
@@ -114,6 +118,26 @@ void handle_comment_line_transition(Pointer *p, int c) {
   if (c == '\n') {
     emit_and_go_to(p, STATE_INITIAL);
   }
+}
+
+void handle_comment_block_transition(Pointer *p, int c) {
+  if (c == '*') {
+    p->reading_state = STATE_COMMENT_BLOCK_ASTERISK;
+  }
+}
+
+void handle_comment_block_asterisk_transition(Pointer *p, int c) {
+  if (c == '*') {
+    p->reading_state = STATE_COMMENT_BLOCK_ASTERISK;
+  } else if (c == '/') {
+    p->reading_state = STATE_COMMENT_BLOCK_END;
+  } else {
+    p->reading_state = STATE_COMMENT_BLOCK;
+  }
+}
+
+void handle_comment_block_end_transition(Pointer *p, int c) {
+  emit_and_restart(p);
 }
 
 void handle_error_transition(Pointer *p, int c) {
@@ -244,6 +268,15 @@ void update_pointer_state(Pointer *p) {
     break;
   case STATE_COMMENT_LINE:
     handle_comment_line_transition(p, c);
+    break;
+  case STATE_COMMENT_BLOCK:
+    handle_comment_block_transition(p, c);
+    break;
+  case STATE_COMMENT_BLOCK_ASTERISK:
+    handle_comment_block_asterisk_transition(p, c);
+    break;
+  case STATE_COMMENT_BLOCK_END:
+    handle_comment_block_end_transition(p, c);
     break;
   case STATE_ERROR:
     handle_error_transition(p, c);
@@ -418,6 +451,8 @@ TokenType classify_token(char *lex, ReadingState state) {
   switch (state) {
   case STATE_COMMENT_LINE:
   case STATE_COMMENT_BLOCK:
+  case STATE_COMMENT_BLOCK_ASTERISK:
+  case STATE_COMMENT_BLOCK_END:
     return COMMENT;
 
   case STATE_SLASH:

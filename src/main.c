@@ -8,8 +8,8 @@ int main()
     return 1;
   }; 
 
-  int sline = 22;
-  int eline = 23;
+  int sline = 1;
+  int eline = 2;
 
   while (p->row < sline) {
     Token * tk= read_next_token(p, 0);
