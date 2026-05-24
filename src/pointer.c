@@ -409,6 +409,33 @@ void prt_token(Token *t, int br) {
   case KEYWORD:
     printf("type: KEYWORD");
     break;
+  case KEYWORD_TYPE:
+    printf("type: KEYWORD_TYPE");
+    break;
+  case KEYWORD_RETURN:
+    printf("type: KEYWORD_RETURN");
+    break;
+  case KEYWORD_IF:
+    printf("type: KEYWORD_IF");
+    break;
+  case KEYWORD_ELSE:
+    printf("type: KEYWORD_ELSE");
+    break;
+  case KEYWORD_WHILE:
+    printf("type: KEYWORD_WHILE");
+    break;
+  case KEYWORD_FOR:
+    printf("type: KEYWORD_FOR");
+    break;
+  case KEYWORD_BREAK:
+    printf("type: KEYWORD_BREAK");
+    break;
+  case KEYWORD_CONTINUE:
+    printf("type: KEYWORD_CONTINUE");
+    break;
+  case KEYWORD_STRUCT:
+    printf("type: KEYWORD_STRUCT");
+    break;
   case IDENTIFIER:
     printf("type: IDENTIFIER");
     break;
@@ -437,14 +464,29 @@ void prt_token(Token *t, int br) {
     printf("\n");
 }
 
-int is_keyword(char *lex) {
-  return strcmp(lex, "int") == 0 || strcmp(lex, "float") == 0 ||
-         strcmp(lex, "char") == 0 || strcmp(lex, "double") == 0 ||
-         strcmp(lex, "void") == 0 || strcmp(lex, "return") == 0 ||
-         strcmp(lex, "if") == 0 || strcmp(lex, "else") == 0 ||
-         strcmp(lex, "while") == 0 || strcmp(lex, "for") == 0 ||
-         strcmp(lex, "break") == 0 || strcmp(lex, "continue") == 0 ||
-         strcmp(lex, "struct") == 0;
+TokenType classify_keyword(char *lex) {
+  if (strcmp(lex, "int") == 0 || strcmp(lex, "float") == 0 ||
+      strcmp(lex, "char") == 0 || strcmp(lex, "double") == 0 ||
+      strcmp(lex, "void") == 0) {
+    return KEYWORD_TYPE;
+  }
+  if (strcmp(lex, "return") == 0)
+    return KEYWORD_RETURN;
+  if (strcmp(lex, "if") == 0)
+    return KEYWORD_IF;
+  if (strcmp(lex, "else") == 0)
+    return KEYWORD_ELSE;
+  if (strcmp(lex, "while") == 0)
+    return KEYWORD_WHILE;
+  if (strcmp(lex, "for") == 0)
+    return KEYWORD_FOR;
+  if (strcmp(lex, "break") == 0)
+    return KEYWORD_BREAK;
+  if (strcmp(lex, "continue") == 0)
+    return KEYWORD_CONTINUE;
+  if (strcmp(lex, "struct") == 0)
+    return KEYWORD_STRUCT;
+  return IDENTIFIER;
 }
 
 TokenType classify_token(char *lex, ReadingState state) {
@@ -459,10 +501,7 @@ TokenType classify_token(char *lex, ReadingState state) {
   case STATE_OPERATOR:
     return OPERATOR;
   case STATE_IDENTIFIER:
-    if (is_keyword(lex)) {
-      return KEYWORD;
-    }
-    return IDENTIFIER;
+    return classify_keyword(lex);
   case STATE_SEPARATOR:
     return SEPARATOR;
   case STATE_FLOAT_NUMBER:
