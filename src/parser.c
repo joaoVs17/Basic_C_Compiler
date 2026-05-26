@@ -16,9 +16,7 @@ int parse_block(Parser *p) {
   }
   if (!parse_prog(p))
     return 0;
-  else printf("SAIU PROG DENTOR BLOCK\n");
   int s = consume_by_lex(p, "}"); 
-  fprintf(stderr, "POS %d\n", s);
   return s;
 }
 
@@ -33,21 +31,19 @@ int parse_prog(Parser *p) {
 
 int parse_decl(Parser *p) {
   if (check(p, KEYWORD_TYPE)) {
-    printf("VAR DEC\n");
     if (!parse_var_declaration(p))
       return 0;
   } else if (check(p, IDENTIFIER)) {
-    printf("ASS\n");
     if (!parse_assignment(p))
       return 0;
   } else if (check(p, KEYWORD_IF)) {
-    printf("COND\n");
     if (!parse_condition(p))
       return 0;
   } else if (check(p, KEYWORD_WHILE)) {
-    printf("WHIEE\n");
     if (!parse_while_loop(p))
       return 0;
+  } else {
+    return 0;
   }
   return 1;
 }
@@ -186,11 +182,6 @@ int parse_assignment(Parser *p) {
 
 void next(Parser *p) {
   p->current = read_next_token(p->pointer, 0);
-  prt_token(p->current, 1);
-  if (p->current->row == 14 && p->current->col == 3) {
-    p->current = read_next_token(p->pointer, 0);
-    prt_token(p->current, 1);
-  }
   // prt_token(p->current, 1);
 }
 int consume(Parser *p, TokenType type) {
@@ -198,6 +189,7 @@ int consume(Parser *p, TokenType type) {
     return 0;
   }
   prt_token(p->current, 1);
+  if (p->current->type == TOKEN_EOF) return 1;
   next(p);
   return 1;
 }

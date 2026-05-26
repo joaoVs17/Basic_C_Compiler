@@ -123,13 +123,17 @@ void handle_slash_transition(Pointer *p, int c) {
     p->reading_state = STATE_COMMENT_BLOCK;
   } else if (c == '=') {
     p->reading_state = STATE_OPERATOR;
+  } else if (c == EOF) {
+    emit_and_go_to(p, STATE_DONE);
   } else {
     emit_and_restart(p);
   }
 }
 
 void handle_comment_line_transition(Pointer *p, int c) {
-  if (c == '\n') {
+  if (c == EOF) {
+    emit_and_go_to(p, STATE_DONE);
+  } else if (c == '\n') {
     emit_and_go_to(p, STATE_INITIAL);
   }
 }
@@ -150,8 +154,12 @@ void handle_comment_block_asterisk_transition(Pointer *p, int c) {
   }
 }
 
-void handle_comment_block_end_transition(Pointer *p) {
-  emit_and_restart(p);
+void handle_comment_block_end_transition(Pointer *p, int c) {
+  if (c == EOF) {
+    emit_and_go_to(p, STATE_DONE);
+  } else {
+    emit_and_restart(p);
+  }
 }
 
 void handle_error_transition(Pointer *p, int c) {
@@ -162,6 +170,8 @@ void handle_error_transition(Pointer *p, int c) {
     emit_and_restart(p);
   } else if (is_whitespace(c)) {
     emit_and_go_to(p, STATE_INITIAL);
+  } else if (c == EOF) {
+    emit_and_go_to(p, STATE_DONE);
   }
 }
 
@@ -173,6 +183,8 @@ void handle_identifier_transition(Pointer *p, int c) {
     emit_and_restart(p);
   } else if (is_whitespace(c)) {
     emit_and_go_to(p, STATE_INITIAL);
+  } else if (c == EOF) {
+    emit_and_go_to(p, STATE_DONE);
   }
 }
 
@@ -180,16 +192,26 @@ void handle_separator_transition(Pointer *p, int c) {
   if (c == ';') {
     printf("DSA\n");
   }
-  emit_and_restart(p);
+  if (c == EOF) {
+    emit_and_go_to(p, STATE_DONE);
+  } else {
+    emit_and_restart(p);
+  }
 }
 
-void handle_operator_transition(Pointer *p) {
-  emit_and_restart(p);
+void handle_operator_transition(Pointer *p, int c) {
+  if (c == EOF) {
+    emit_and_go_to(p, STATE_DONE);
+  } else {
+    emit_and_restart(p);
+  }
 }
 
 void handle_plus_transition(Pointer *p, int c) {
   if (c == '=' || c == '+') {
     p->reading_state = STATE_OPERATOR;
+  } else if (c == EOF) {
+    emit_and_go_to(p, STATE_DONE);
   } else {
     emit_and_restart(p);
   }
@@ -198,6 +220,8 @@ void handle_plus_transition(Pointer *p, int c) {
 void handle_minus_transition(Pointer *p, int c) {
   if (c == '=' || c == '-') {
     p->reading_state = STATE_OPERATOR;
+  } else if (c == EOF) {
+    emit_and_go_to(p, STATE_DONE);
   } else {
     emit_and_restart(p);
   }
@@ -206,6 +230,8 @@ void handle_minus_transition(Pointer *p, int c) {
 void handle_times_transition(Pointer *p, int c) {
   if (c == '=') {
     p->reading_state = STATE_OPERATOR;
+  } else if (c == EOF) {
+    emit_and_go_to(p, STATE_DONE);
   } else {
     emit_and_restart(p);
   }
@@ -214,6 +240,8 @@ void handle_times_transition(Pointer *p, int c) {
 void handle_assign_transition(Pointer *p, int c) {
   if (c == '=') {
     p->reading_state = STATE_OPERATOR;
+  } else if (c == EOF) {
+    emit_and_go_to(p, STATE_DONE);
   } else {
     emit_and_restart(p);
   }
@@ -222,6 +250,8 @@ void handle_assign_transition(Pointer *p, int c) {
 void handle_exclamation_mark_transition(Pointer *p, int c) {
   if (c == '=') {
     p->reading_state = STATE_OPERATOR;
+  } else if (c == EOF) {
+    emit_and_go_to(p, STATE_DONE);
   } else {
     emit_and_restart(p);
   }
@@ -230,6 +260,8 @@ void handle_exclamation_mark_transition(Pointer *p, int c) {
 void handle_number_transition(Pointer *p, int c) {
   if (c == '.') {
     p->reading_state = STATE_FLOAT_NUMBER_WITHOUT_DECIMAL;
+  } else if (c == EOF) {
+    emit_and_go_to(p, STATE_DONE);
   } else if ((is_separator_char(c) && c != '.') || c == ' ' || c == '\t' ||
              c == '\n' || is_operator_char(c)) {
     emit_and_restart(p);
@@ -253,6 +285,8 @@ void handle_float_number_without_decimal_transition(Pointer *p, int c) {
 void handle_float_number_transition(Pointer *p, int c) {
   if (c == '.') {
     p->reading_state = STATE_ERROR_NUMBER_MANY_DOTS;
+  } else if (c == EOF) {
+    emit_and_go_to(p, STATE_DONE);
   } else if ((is_separator_char(c) && c != '.') || c == ' ' || c == '\t' ||
              c == '\n' || is_operator_char(c)) {
     emit_and_restart(p);
@@ -271,6 +305,8 @@ void handle_error_number_many_dots_transition(Pointer *p, int c) {
     update_pivot(p);
   } else if (c == ' ' || c == '\n' || c == '\t') {
     emit_and_go_to(p, STATE_INITIAL);
+  } else if (c == EOF) {
+    emit_and_go_to(p, STATE_DONE);
   }
 }
 
@@ -284,8 +320,12 @@ void handle_open_literal_transition(Pointer *p, int c) {
   }
 }
 
-void handle_closed_literal_transition(Pointer *p) {
-  emit_and_restart(p);
+void handle_closed_literal_transition(Pointer *p, int c) {
+  if (c == EOF) {
+    emit_and_go_to(p, STATE_DONE);
+  } else {
+    emit_and_restart(p);
+  }
 }
 
 void handle_open_simple_literal_transition(Pointer *p, int c) {
@@ -298,8 +338,12 @@ void handle_open_simple_literal_transition(Pointer *p, int c) {
   }
 }
 
-void handle_closed_simple_literal_transition(Pointer *p) {
-  emit_and_restart(p);
+void handle_closed_simple_literal_transition(Pointer *p, int c) {
+  if (c == EOF) {
+    emit_and_go_to(p, STATE_DONE);
+  } else {
+    emit_and_restart(p);
+  }
 }
 
 void update_pointer_state(Pointer *p) {
@@ -325,7 +369,7 @@ void update_pointer_state(Pointer *p) {
     handle_comment_block_asterisk_transition(p, c);
     break;
   case STATE_COMMENT_BLOCK_END:
-    handle_comment_block_end_transition(p);
+    handle_comment_block_end_transition(p, c);
     break;
   case STATE_ERROR:
     handle_error_transition(p, c);
@@ -337,7 +381,7 @@ void update_pointer_state(Pointer *p) {
     handle_separator_transition(p, c);
     break;
   case STATE_OPERATOR:
-    handle_operator_transition(p);
+    handle_operator_transition(p, c);
     break;
   case STATE_PLUS:
     handle_plus_transition(p, c);
@@ -370,13 +414,13 @@ void update_pointer_state(Pointer *p) {
     handle_open_literal_transition(p, c);
     break;
   case STATE_CLOSED_LITERAL:
-    handle_closed_literal_transition(p);
+    handle_closed_literal_transition(p, c);
     break;
   case STATE_OPEN_SIMPLE_LITERAL:
     handle_open_simple_literal_transition(p, c);
     break;
   case STATE_CLOSED_SIMPLE_LITERAL:
-    handle_closed_simple_literal_transition(p);
+    handle_closed_simple_literal_transition(p, c);
     break;
   default:
     break;
@@ -388,7 +432,7 @@ Token *get_token_from_pointer(Pointer *p) {
     return NULL;
 
   long start = p->pivot_pos;
-  long end = p->curr_pos - 1;
+  long end = p->value == EOF ? p->curr_pos : p->curr_pos - 1;
   // printf("POSITION BEFORE READING TOKEN %d\n", ftell(p->stream));
 
   if (end < start)
@@ -419,7 +463,7 @@ Token *get_token_from_pointer(Pointer *p) {
   p->pivot_col = p->col;
 
   // printf("POSITION AFTER READING TOKEN %d\n", ftell(p->stream));
-  int c = fgetc(p->stream);
+  fgetc(p->stream);
   // printf("TOKEN [%ld,%ld): '%s' // LAST READ VALUE: %c\n", start, end,
   // token->lex, p->value); printf("c: %c val: %c\n", c, p->value);
   return token;
@@ -428,10 +472,13 @@ Token *get_token_from_pointer(Pointer *p) {
 int advance_pointer(Pointer *p) {
   int c = fgetc(p->stream);
   p->value = c;
-  if (c == EOF)
+  if (c == EOF) {
+    update_pointer_state(p);
     return 0;
+  }
   update_pointer_position(p);
   update_pointer_state(p);
+  return 1;
 }
 
 ReadingState detect_start_state(int c) {
@@ -544,6 +591,9 @@ void prt_token(Token *t, int br) {
     break;
   case NUMBER:
     printf("NUMBER");
+    break;
+  case TOKEN_EOF:
+    printf("TOKEN_EOF");
     break;
   default:
     printf("UNKNOWN");
@@ -686,10 +736,28 @@ int is_token_start(int c) {
          is_operator_char(c) || is_separator_char(c);
 }
 
+static Token* emit_last_token(Pointer *p) {
+  Token * tk = (Token *)malloc(sizeof(Token));
+  tk->col = p->col;
+  tk->row = p->row;
+  tk->lex = NULL;
+  tk->type = TOKEN_EOF;
+  return tk;
+}
+
 Token *read_next_token(Pointer *p, int prt) {
+  if (p->reading_state == STATE_DONE) {
+    return emit_last_token(p);
+  }
   p->token = NULL;
   while (p->token == NULL) {
-    advance_pointer(p);
+    if (p->reading_state == STATE_DONE) {
+      return NULL;
+    }
+
+    if (!advance_pointer(p) && p->token == NULL) {
+      return NULL;
+    }
     // printf("%d",p->token);
   }
   if (prt) {
