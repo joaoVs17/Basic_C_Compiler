@@ -1,13 +1,21 @@
 #include "pointer.h"
+#include "parser.h"
 
 int main()
 {
   Pointer * p = (Pointer *) malloc(sizeof(Pointer));
-  if (!init_pointer("lexer-test2.c", p)) {
+  if (!init_pointer("lexer-test3.c", p)) {
     printf("FAILED TO INIT POINTER\n");
     return 1;
   }; 
 
+  Parser * parser = (Parser *) malloc(sizeof(Parser));
+
+  init_parser(parser, p);
+
+  int a = parse_code(parser);
+  printf("\n%d\n", a);
+  return a;
   int sline = 1;
   int eline = 2;
 

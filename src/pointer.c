@@ -16,6 +16,16 @@ static const char *reading_state_to_str(ReadingState s) {
     return "STATE_COMMENT_BLOCK_END";
   case STATE_OPERATOR:
     return "STATE_OPERATOR";
+  case STATE_PLUS:
+    return "STATE_PLUS";
+  case STATE_MINUS:
+    return "STATE_MINUS";
+  case STATE_TIMES:
+    return "STATE_TIMES";
+  case STATE_ASSIGN:
+    return "STATE_ASSIGN";
+  case STATE_EXCLAMATION_MARK:
+    return "STATE_EXCLAMATION_MARK";
   case STATE_DONE:
     return "STATE_DONE";
   case STATE_ERROR:
@@ -111,6 +121,10 @@ void handle_slash_transition(Pointer *p, int c) {
     p->reading_state = STATE_COMMENT_LINE;
   } else if (c == '*') {
     p->reading_state = STATE_COMMENT_BLOCK;
+  } else if (c == '=') {
+    p->reading_state = STATE_OPERATOR;
+  } else {
+    emit_and_restart(p);
   }
 }
 
@@ -136,7 +150,7 @@ void handle_comment_block_asterisk_transition(Pointer *p, int c) {
   }
 }
 
-void handle_comment_block_end_transition(Pointer *p, int c) {
+void handle_comment_block_end_transition(Pointer *p) {
   emit_and_restart(p);
 }
 
@@ -145,8 +159,7 @@ void handle_error_transition(Pointer *p, int c) {
     emit_and_go_to(p, STATE_SEPARATOR);
     update_pivot(p);
   } else if (is_operator_char(c)) {
-    emit_and_go_to(p, STATE_OPERATOR);
-    update_pivot(p);
+    emit_and_restart(p);
   } else if (is_whitespace(c)) {
     emit_and_go_to(p, STATE_INITIAL);
   }
@@ -154,11 +167,10 @@ void handle_error_transition(Pointer *p, int c) {
 
 void handle_identifier_transition(Pointer *p, int c) {
   if ((is_separator_start(c))) {
-    emit_and_go_to(p, STATE_SEPARATOR);
-    update_pivot(p);
+    emit_and_restart(p);
+    // update_pivot(p);
   } else if (is_operator_char(c)) {
-    emit_and_go_to(p, STATE_OPERATOR);
-    update_pivot(p);
+    emit_and_restart(p);
   } else if (is_whitespace(c)) {
     emit_and_go_to(p, STATE_INITIAL);
   }
@@ -171,9 +183,48 @@ void handle_separator_transition(Pointer *p, int c) {
   emit_and_restart(p);
 }
 
-void handle_operator_transition(Pointer *p, int c) {
-  (void)c;
+void handle_operator_transition(Pointer *p) {
   emit_and_restart(p);
+}
+
+void handle_plus_transition(Pointer *p, int c) {
+  if (c == '=' || c == '+') {
+    p->reading_state = STATE_OPERATOR;
+  } else {
+    emit_and_restart(p);
+  }
+}
+
+void handle_minus_transition(Pointer *p, int c) {
+  if (c == '=' || c == '-') {
+    p->reading_state = STATE_OPERATOR;
+  } else {
+    emit_and_restart(p);
+  }
+}
+
+void handle_times_transition(Pointer *p, int c) {
+  if (c == '=') {
+    p->reading_state = STATE_OPERATOR;
+  } else {
+    emit_and_restart(p);
+  }
+}
+
+void handle_assign_transition(Pointer *p, int c) {
+  if (c == '=') {
+    p->reading_state = STATE_OPERATOR;
+  } else {
+    emit_and_restart(p);
+  }
+}
+
+void handle_exclamation_mark_transition(Pointer *p, int c) {
+  if (c == '=') {
+    p->reading_state = STATE_OPERATOR;
+  } else {
+    emit_and_restart(p);
+  }
 }
 
 void handle_number_transition(Pointer *p, int c) {
@@ -233,8 +284,7 @@ void handle_open_literal_transition(Pointer *p, int c) {
   }
 }
 
-void handle_closed_literal_transition(Pointer *p, int c) {
-  (void)c;
+void handle_closed_literal_transition(Pointer *p) {
   emit_and_restart(p);
 }
 
@@ -248,8 +298,7 @@ void handle_open_simple_literal_transition(Pointer *p, int c) {
   }
 }
 
-void handle_closed_simple_literal_transition(Pointer *p, int c) {
-  (void)c;
+void handle_closed_simple_literal_transition(Pointer *p) {
   emit_and_restart(p);
 }
 
@@ -276,7 +325,7 @@ void update_pointer_state(Pointer *p) {
     handle_comment_block_asterisk_transition(p, c);
     break;
   case STATE_COMMENT_BLOCK_END:
-    handle_comment_block_end_transition(p, c);
+    handle_comment_block_end_transition(p);
     break;
   case STATE_ERROR:
     handle_error_transition(p, c);
@@ -288,7 +337,22 @@ void update_pointer_state(Pointer *p) {
     handle_separator_transition(p, c);
     break;
   case STATE_OPERATOR:
-    handle_operator_transition(p, c);
+    handle_operator_transition(p);
+    break;
+  case STATE_PLUS:
+    handle_plus_transition(p, c);
+    break;
+  case STATE_MINUS:
+    handle_minus_transition(p, c);
+    break;
+  case STATE_TIMES:
+    handle_times_transition(p, c);
+    break;
+  case STATE_ASSIGN:
+    handle_assign_transition(p, c);
+    break;
+  case STATE_EXCLAMATION_MARK:
+    handle_exclamation_mark_transition(p, c);
     break;
   case STATE_NUMBER:
     handle_number_transition(p, c);
@@ -306,13 +370,13 @@ void update_pointer_state(Pointer *p) {
     handle_open_literal_transition(p, c);
     break;
   case STATE_CLOSED_LITERAL:
-    handle_closed_literal_transition(p, c);
+    handle_closed_literal_transition(p);
     break;
   case STATE_OPEN_SIMPLE_LITERAL:
     handle_open_simple_literal_transition(p, c);
     break;
   case STATE_CLOSED_SIMPLE_LITERAL:
-    handle_closed_simple_literal_transition(p, c);
+    handle_closed_simple_literal_transition(p);
     break;
   default:
     break;
@@ -375,6 +439,23 @@ ReadingState detect_start_state(int c) {
   if (c == '/')
     return STATE_SLASH;
 
+  if (c == '+')
+    return STATE_PLUS;
+
+  if (c == '-')
+    return STATE_MINUS;
+
+  if (c == '*')
+    return STATE_TIMES;
+
+  if (c == '=')
+    return STATE_ASSIGN;
+
+  if (c == '!')
+    return STATE_EXCLAMATION_MARK;
+
+  //Some operators first
+
   if (c == '\n' || c == ' ' || c == '\t')
     return STATE_INITIAL;
 
@@ -404,60 +485,71 @@ void prt_token(Token *t, int br) {
     printf("TOKEN NULO \n");
     return;
   }
-  printf("{lex: %s, ", t->lex);
+  printf("{lex: \x1b[32m %s\x1b[0m, ", t->lex);
+  printf("type: \x1b[35m");
   switch (t->type) {
   case KEYWORD:
-    printf("type: KEYWORD");
+    printf("KEYWORD");
     break;
   case KEYWORD_TYPE:
-    printf("type: KEYWORD_TYPE");
+    printf("KEYWORD_TYPE");
     break;
   case KEYWORD_RETURN:
-    printf("type: KEYWORD_RETURN");
+    printf("KEYWORD_RETURN");
     break;
   case KEYWORD_IF:
-    printf("type: KEYWORD_IF");
+    printf("KEYWORD_IF");
     break;
   case KEYWORD_ELSE:
-    printf("type: KEYWORD_ELSE");
+    printf("KEYWORD_ELSE");
     break;
   case KEYWORD_WHILE:
-    printf("type: KEYWORD_WHILE");
+    printf("KEYWORD_WHILE");
     break;
   case KEYWORD_FOR:
-    printf("type: KEYWORD_FOR");
+    printf("KEYWORD_FOR");
     break;
   case KEYWORD_BREAK:
-    printf("type: KEYWORD_BREAK");
+    printf("KEYWORD_BREAK");
     break;
   case KEYWORD_CONTINUE:
-    printf("type: KEYWORD_CONTINUE");
+    printf("KEYWORD_CONTINUE");
     break;
   case KEYWORD_STRUCT:
-    printf("type: KEYWORD_STRUCT");
+    printf("KEYWORD_STRUCT");
     break;
   case IDENTIFIER:
-    printf("type: IDENTIFIER");
+    printf("IDENTIFIER");
     break;
   case LITERAL:
-    printf("type: LITERAL");
+    printf("LITERAL");
     break;
   case COMMENT:
-    printf("type: COMMENT");
+    printf("COMMENT");
     break;
   case OPERATOR:
-    printf("type: OPERATOR");
+    printf("OPERATOR");
+    break;
+  case OPERATOR_ASSIGNMENT:
+    printf("OPERATOR_ASSIGNMENT");
+    break;
+  case OPERATOR_ARITMETIC:
+    printf("OPERATOR_ARITMETIC");
+    break;
+  case OPERATOR_LOGIC:
+    printf("OPERATOR_LOGIC");
     break;
   case SEPARATOR:
-    printf("type: SEPARATOR");
+    printf("SEPARATOR");
     break;
   case NUMBER:
-    printf("type: NUMBER");
+    printf("NUMBER");
     break;
   default:
-    printf("type: UNKNOWN");
+    printf("UNKNOWN");
     break;
   }
+  printf("\x1b[0m");
   printf(", row: %d, col: %d", t->row, t->col);
   printf("}");
   if (br)
@@ -489,6 +581,26 @@ TokenType classify_keyword(char *lex) {
   return IDENTIFIER;
 }
 
+TokenType classify_operator(char *lex) {
+  if (strcmp(lex, "+=") == 0 || strcmp(lex, "-=") == 0 ||
+      strcmp(lex, "*=") == 0 || strcmp(lex, "/=") == 0 ||
+      strcmp(lex, "=") == 0) {
+    return OPERATOR_ASSIGNMENT;
+  }
+
+  if (strcmp(lex, "+") == 0 || strcmp(lex, "-") == 0 ||
+      strcmp(lex, "*") == 0 || strcmp(lex, "/") == 0) {
+    return OPERATOR_ARITMETIC;
+  }
+
+  if (strcmp(lex, "!") == 0 || strcmp(lex, "==") == 0 ||
+      strcmp(lex, "!=") == 0) {
+    return OPERATOR_LOGIC;
+  }
+
+  return OPERATOR;
+}
+
 TokenType classify_token(char *lex, ReadingState state) {
   switch (state) {
   case STATE_COMMENT_LINE:
@@ -499,7 +611,12 @@ TokenType classify_token(char *lex, ReadingState state) {
 
   case STATE_SLASH:
   case STATE_OPERATOR:
-    return OPERATOR;
+  case STATE_PLUS:
+  case STATE_MINUS:
+  case STATE_TIMES:
+  case STATE_ASSIGN:
+  case STATE_EXCLAMATION_MARK:
+    return classify_operator(lex);
   case STATE_IDENTIFIER:
     return classify_keyword(lex);
   case STATE_SEPARATOR:

@@ -1,0 +1,53 @@
+<CODE> -> <BLOCK> EOF
+
+<BLOCK> -> { <PROG> }
+
+<PROG> -> <DECL> <PROG>
+<PROG> -> $
+
+<DECL> -> <VAR_DECLARATION>
+<DECL> -> <ASSIGNMENT>
+<DECL> -> <CONDITION>
+<DECL> -> <WHILE_LOOP>
+<!-- <DECL> -> <EXPR_STATEMENT> -->
+
+<VAR_DECLARATION> -> <TYPE> IDENTIFIER ;
+<VAR_DECLARATION> -> <TYPE> IDENTIFIER = <EXPR> ;
+
+<ASSIGNMENT> -> IDENTIFIER = <EXPR> ;
+
+<CONDITION> -> if ( <EXPR> ) <BLOCK>
+<CONDITION> -> if ( <EXPR> ) <BLOCK> else <BLOCK>
+
+<WHILE_LOOP> -> while ( <EXPR> ) <BLOCK>
+
+
+//EXPRESSION STATEMENTS
+
+//Handle sum and sub
+<EXPR> -> <TERM> <EXPR_TAIL>
+
+<EXPR_TAIL> -> + <TERM> <EXPR_TAIL>
+<EXPR_TAIL> -> - <TERM> <EXPR_TAIL>
+<EXPR_TAIL> -> ε
+
+//Handle times and div
+<TERM> -> <FACTOR> <TERM_TAIL>
+
+<TERM_TAIL> -> * <FACTOR> <TERM_TAIL>
+<TERM_TAIL> -> / <FACTOR> <TERM_TAIL>
+<TERM_TAIL> -> ε
+
+//Values of a factor
+<FACTOR> -> IDENTIFIER
+<FACTOR> -> NUMBER
+<FACTOR> -> STRING_LITERAL
+<FACTOR> -> CHAR_LITERAL
+<FACTOR> -> ( <EXPR> )
+
+//Types
+
+<TYPE> -> int
+<TYPE> -> float
+<TYPE> -> char
+<TYPE> -> string
