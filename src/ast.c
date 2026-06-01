@@ -44,7 +44,7 @@ int add_child(ASTNode *parent, ASTNode *child) {
   return 1;
 }
 
-void ast_print(ASTNode *node, int depth) {
+void prt_ast(ASTNode *node, int depth) {
   if (node == NULL) {
     return;
   }
@@ -53,11 +53,11 @@ void ast_print(ASTNode *node, int depth) {
   }
   printf("%s", get_node_type_str(node->type));
   if (node->token != NULL && node->token->lex != NULL) {
-    printf(" %s", node->token->lex);
+    printf(" (\x1b[32m%s\x1b[0m) [Row: %d, Col: %d]", node->token->lex, node->token->row, node->token->col);
   }
   printf("\n");
   for (int i = 0; i < node->child_count; i++) {
-    ast_print(node->children[i], depth + 1);
+    prt_ast(node->children[i], depth + 1);
   }
 }
 
@@ -94,8 +94,6 @@ const char *get_node_type_str(ASTNodeType type) {
     return "CHAR_LITERAL";
   case AST_BINARY_EXPR:
     return "BINARY_EXPR";
-  case AST_UNARY_EXPR:
-    return "UNARY_EXPR";
   case AST_IF:
     return "IF";
   case AST_WHILE:

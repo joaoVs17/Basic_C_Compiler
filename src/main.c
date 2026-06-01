@@ -4,7 +4,7 @@
 int main()
 {
   Pointer * p = (Pointer *) malloc(sizeof(Pointer));
-  if (!init_pointer("parser-test2.c", p)) {
+  if (!init_pointer("parser-test1.c", p)) {
     printf("FAILED TO INIT POINTER\n");
     return 1;
   }; 
@@ -13,23 +13,33 @@ int main()
 
   init_parser(parser, p);
 
-  int a = parse_code(parser);
-  if (a) {
-    printf("DEU CERTO VC EH FODA;\n");
+  ASTNode *ast = parse_code(parser);
+  if (ast) {
+    printf("\n\n---------AST---------\n\n");
+    prt_ast(ast, 0);
+    destroy_ast(ast);
+    printf("\n");
     return 0;
   } else {
-    printf("DEU ERRADO VC EH FRACO;\n");
+    prt_parser_errors(parser);
     return 1;
   }
-  return a;
   int sline = 1;
   int eline = 2;
 
   //Ler tudo
   //Ler tudo
 
+  while (1) {
+    Token *tk =read_next_token(p, 0);
+    prt_token(tk, 1);
+    if (tk->type == TOKEN_EOF) {
+      return 0;
+    }
+  }
 
-  return 1;
+  return 0;
+
 
   while (p->row < sline) {
     Token * tk= read_next_token(p, 0);

@@ -346,6 +346,23 @@ void handle_closed_simple_literal_transition(Pointer *p, int c) {
   }
 }
 
+void handle_state_ampersand_transition(Pointer *p, int c) {
+  if (c == EOF) {
+    emit_and_go_to(p, STATE_DONE);
+  } else if (c == '&') {
+    p->reading_state = STATE_OPERATOR;
+  }
+}
+
+void handle_state_pipe_transition(Pointer *p, int c) {
+  if (c == EOF) {
+    emit_and_go_to(p, STATE_DONE);
+  } else if (c == '|') {
+    p->reading_state = STATE_OPERATOR;
+  }
+}
+
+
 void update_pointer_state(Pointer *p) {
   if (p == NULL)
     return;
@@ -422,6 +439,10 @@ void update_pointer_state(Pointer *p) {
   case STATE_CLOSED_SIMPLE_LITERAL:
     handle_closed_simple_literal_transition(p, c);
     break;
+  case STATE_AMPERSAND:
+    handle_state_ampersand_transition(p, c);
+  case STATE_PIPE:
+    handle_state_pipe_transition(p, c);
   default:
     break;
   }
@@ -501,7 +522,12 @@ ReadingState detect_start_state(int c) {
   if (c == '!')
     return STATE_EXCLAMATION_MARK;
 
-  //Some operators first
+  if (c == '&')
+    return STATE_AMPERSAND;
+
+  if (c == '|')
+    return STATE_PIPE;
+  // Some operators first
 
   if (c == '\n' || c == ' ' || c == '\t')
     return STATE_INITIAL;
@@ -638,8 +664,8 @@ TokenType classify_operator(char *lex) {
     return OPERATOR_ASSIGNMENT;
   }
 
-  if (strcmp(lex, "+") == 0 || strcmp(lex, "-") == 0 ||
-      strcmp(lex, "*") == 0 || strcmp(lex, "/") == 0) {
+  if (strcmp(lex, "+") == 0 || strcmp(lex, "-") == 0 || strcmp(lex, "*") == 0 ||
+      strcmp(lex, "/") == 0) {
     return OPERATOR_ARITMETIC;
   }
 
@@ -736,8 +762,8 @@ int is_token_start(int c) {
          is_operator_char(c) || is_separator_char(c);
 }
 
-static Token* emit_last_token(Pointer *p) {
-  Token * tk = (Token *)malloc(sizeof(Token));
+static Token *emit_last_token(Pointer *p) {
+  Token *tk = (Token *)malloc(sizeof(Token));
   tk->col = p->col;
   tk->row = p->row;
   tk->lex = NULL;

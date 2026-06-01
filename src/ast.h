@@ -30,7 +30,7 @@ typedef struct ASTNode {
 
 ASTNode *create_ast(ASTNodeType type, Token *token);
 int add_child(ASTNode *parent, ASTNode *child);
-void ast_print(ASTNode *node, int depth);
+void prt_ast(ASTNode *node, int depth);
 void destroy_ast(ASTNode *node);
 const char *get_node_type_str(ASTNodeType type); 
 
