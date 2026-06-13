@@ -1,23 +1,42 @@
 CC = gcc
-CFLAGS = -Wall -Wextra -std=c11
+CFLAGS = -Wall -Wextra -g3
+
 TARGET = main
 
-SRC = src/main.c src/pointer.c src/parser.c src/ast.c
+SRC = \
+	src/main.c \
+	src/parser/parser.c \
+	src/lexer/lexer.c \
+	src/ast/ast.c \
+	src/stack/stack.c \
+	src/production/production.c
+
 OBJ = $(SRC:.c=.o)
 
 all: $(TARGET)
 
 $(TARGET): $(OBJ)
-	$(CC) $(CFLAGS) -o $(TARGET) $(OBJ)
+	$(CC) $(CFLAGS) -o $@ $^
 
-src/%.o: src/%.c src/pointer.h src/parser.h src/ast.h
+%.o: %.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
 run: $(TARGET)
 	./$(TARGET)
+	$(MAKE) clean
+
+debug: $(TARGET)
+	gdb ./$(TARGET)
+	$(MAKE) clean
 
 val: $(TARGET)
-	valgrind --leak-check=full --show-leak-kinds=all ./$(TARGET)
+	valgrind \
+		--leak-check=full \
+		--show-leak-kinds=all \
+		--track-origins=yes \
+		./$(TARGET)
 
 clean:
-	rm -f $(TARGET) $(OBJ)
+	rm -f $(OBJ) $(TARGET)
+
+re: clean all

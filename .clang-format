@@ -1,2 +1,7 @@
 BasedOnStyle: LLVM
 BreakBeforeBraces: Attach
+
+BinPackParameters: OnePerLine
+AllowAllParametersOfDeclarationOnNextLine: false
+PenaltyBreakBeforeFirstCallParameter: 1000000
+ColumnLimit: 0
