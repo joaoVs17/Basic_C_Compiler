@@ -3,7 +3,7 @@
 
 int main() {
 
-  char *file_path = "./docs/parser-test3.c";
+  char *file_path = "./docs/parser-test1.c";
   Pointer *pointer = (Pointer *)malloc(sizeof(Pointer));
   if (!init_pointer(file_path, pointer)) {
     printf("FAILED TO INIT POINTER\n");

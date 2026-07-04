@@ -159,3 +159,15 @@ char *grammar_symbol_to_string(GrammarSymbol sym) {
 void print_symbol(GrammarSymbol sym) {
   printf("%s\n", grammar_symbol_to_string(sym));
 }
+
+int parse_stack_push_many(ParseStack *stack, int count, ...) {
+  va_list args;
+  va_start(args, count);
+
+  for (int i = 0; i < count; i++) {
+    GrammarSymbol s = va_arg(args, GrammarSymbol);
+    if (!parse_stack_push(stack, s)) return 0;
+  }
+  va_end(args);
+  return 1;
+}

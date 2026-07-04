@@ -1,6 +1,8 @@
 #ifndef STACK_H
 #define STACK_H
 
+#include <stdarg.h> 
+
 #define PARSE_STACK_MAX 1024
 #define NON_TERMINALS_COUNT 23
 #define TERMINALS_COUNT 30
@@ -10,6 +12,7 @@
 
 #define FIRST_TERMINAL SYM_IDENTIFIER
 #define LAST_TERMINAL SYM_EOF
+
 
 typedef enum {
 
@@ -106,6 +109,7 @@ void parse_stack_init(ParseStack *stack);
 void parse_stack_clear(ParseStack *stack);
 
 int parse_stack_push(ParseStack *stack, GrammarSymbol symbol);
+int parse_stack_push_many(ParseStack *stack, int count, ...);
 int parse_stack_pop(ParseStack *stack, GrammarSymbol *out_symbol);
 int parse_stack_peek(const ParseStack *stack, GrammarSymbol *out_symbol);
 

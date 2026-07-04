@@ -76,6 +76,8 @@ void destroy_ast(ASTNode *node) {
 
 const char *get_node_type_str(ASTNodeType type) {
   switch (type) {
+  case AST_CODE: 
+    return "CODE";
   case AST_PROGRAM:
     return "PROGRAM";
   case AST_BLOCK:

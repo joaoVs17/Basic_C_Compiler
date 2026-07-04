@@ -12,6 +12,7 @@ int is_non_terminal(GrammarSymbol s);
 typedef struct sParser {
   Pointer * p;
   Token * t;
+  ASTNode *ast;
 } Parser;
 
 int init_parser(Parser *parser, Pointer *pointer);
@@ -27,6 +28,8 @@ int matches(GrammarSymbol sym, Token * tk);
 GrammarSymbol token_to_symbol(const Token *token);
 int apply_production(ParseStack *stack, Production production);
 int handle_terminal_top(GrammarSymbol top, Token *current_token, Parser *parser);
+int handle_non_terminal_top(GrammarSymbol top, Token * current_token, ParseStack * stack);
+int handle_ast_construct(Production applied_produciton, GrammarSymbol unstacked_symbol, Token * current_token);
 
 
 #endif
