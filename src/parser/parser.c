@@ -18,6 +18,9 @@ int parse(Parser *p, ParseStack *stack) {
   p->ast = create_ast(AST_CODE, NULL);
   current_node = p->ast;
   next(p);
+  NodeStack * node_stack = (NodeStack * ) malloc(sizeof(NodeStack));
+  node_stack_init(node_stack);
+  node_stack_push(node_stack, p->ast);
   int count = 0;
   while (!symbol_stack_is_empty(stack)) {
     // if (count >= 2) return 0;
@@ -33,7 +36,7 @@ int parse(Parser *p, ParseStack *stack) {
         return 0;
     } else {
 
-      if (!handle_non_terminal_top(top, current_token, stack))
+      if (!handle_non_terminal_top(top, current_token, stack, node_stack))
         return 0;
       // GrammarSymbol lookahead = token_to_symbol(current_token);
       // Production production = ll1_lookup(top, lookahead);
@@ -72,7 +75,7 @@ int handle_terminal_top(GrammarSymbol top, Token *current_token, Parser *parser)
   }
 }
 
-int handle_non_terminal_top(GrammarSymbol top, Token *current_token, ParseStack *stack) {
+int handle_non_terminal_top(GrammarSymbol top, Token *current_token, ParseStack *stack, NodeStack * node_stack) {
   GrammarSymbol lookahead = token_to_symbol(current_token);
   Production production = ll1_lookup(top, lookahead);
 
@@ -80,14 +83,14 @@ int handle_non_terminal_top(GrammarSymbol top, Token *current_token, ParseStack 
     syntax_error("Production == PROD_NONE");
     return 0;
   } else {
-    if (!apply_production(stack, production))
+    if (!apply_production(stack, node_stack, production))
       return 0;
-    handle_ast_construct(production, top, current_token);
+    handle_ast_construct(production, top, current_token, node_stack);
   }
   return 1;
 }
 
-int handle_ast_construct(Production applied_produciton, GrammarSymbol unstacked_symbol, Token *current_token) {
+int handle_ast_construct(Production applied_produciton, GrammarSymbol unstacked_symbol, Token *current_token, NodeStack * node_stack) {
   switch (applied_produciton) {
   case PROD_CODE_BLOCK_EOF:
     ASTNode *node = create_ast(AST_PROGRAM, current_token);
@@ -269,13 +272,20 @@ GrammarSymbol token_to_symbol(const Token *token) {
   return SYM_EPSILON; // ou SYM_INVALID 
 }
 
-int apply_production(ParseStack *stack, Production production) {
+static ASTNode *open_node(NodeStack *node_stack, ASTNodeType type) {
+  ASTNode *node = create_ast(type, NULL);
+  node_stack_push(node_stack, node);
+  return node;
+}
+
+int apply_production(ParseStack *stack, NodeStack * node_stack, Production production) {
   switch (production) {
   case PROD_CODE_BLOCK_EOF:
     return symbol_stack_push_many(stack, 2, SYM_EOF, SYM_BLOCK);
     break;
 
   case PROD_BLOCK_LBRACE_PROG_RBRACE:
+    open_node(node_stack, AST_BLOCK);
     return symbol_stack_push_many(stack, 3, SYM_RBRACE, SYM_PROG, SYM_LBRACE);
     break;
 
@@ -304,6 +314,7 @@ int apply_production(ParseStack *stack, Production production) {
     break;
 
   case PROD_VAR_DECLARATION_TYPE_IDENTIFIER_VAR_DECLARATION_TAIL:
+    open_node(node_stack, AST_VAR_DECLARATION);
     return symbol_stack_push_many(stack, 3, SYM_VAR_DECLARATION_TAIL,
                                  SYM_IDENTIFIER, SYM_TYPE);
     break;
@@ -317,11 +328,13 @@ int apply_production(ParseStack *stack, Production production) {
     break;
 
   case PROD_ASSIGNMENT_IDENTIFIER_ASSIGN_EXPR_SEMICOLON:
+    open_node(node_stack, AST_ASSIGNMENT);
     return symbol_stack_push_many(stack, 4, SYM_SEMICOLON, SYM_EXPR, SYM_ASSIGN,
                                  SYM_IDENTIFIER);
     break;
 
   case PROD_CONDITION_IF_LPAREN_EXPR_RPAREN_BLOCK_CONDITION_TAIL:
+    open_node(node_stack, AST_IF);
     return symbol_stack_push_many(stack, 6, SYM_CONDITION_TAIL, SYM_BLOCK,
                                  SYM_RPAREN, SYM_EXPR, SYM_LPAREN, SYM_IF);
     break;
@@ -335,6 +348,7 @@ int apply_production(ParseStack *stack, Production production) {
     break;
 
   case PROD_WHILE_LOOP_WHILE_LPAREN_EXPR_RPAREN_BLOCK:
+    open_node(node_stack, AST_WHILE);
     return symbol_stack_push_many(stack, 5, SYM_BLOCK, SYM_RPAREN, SYM_EXPR,
                                  SYM_LPAREN, SYM_WHILE);
     break;

@@ -27,10 +27,10 @@ void next(Parser *p);
 int syntax_error(char *);
 int matches(GrammarSymbol sym, Token * tk);
 GrammarSymbol token_to_symbol(const Token *token);
-int apply_production(ParseStack *stack, Production production);
+int apply_production(ParseStack *stack, NodeStack *node, Production production);
 int handle_terminal_top(GrammarSymbol top, Token *current_token, Parser *parser);
-int handle_non_terminal_top(GrammarSymbol top, Token * current_token, ParseStack * stack);
-int handle_ast_construct(Production applied_produciton, GrammarSymbol unstacked_symbol, Token * current_token);
+int handle_non_terminal_top(GrammarSymbol top, Token * current_token, ParseStack * stack, NodeStack * node_stack);
+int handle_ast_construct(Production applied_produciton, GrammarSymbol unstacked_symbol, Token * current_token, NodeStack * node_stack);
 GrammarSymbol production_non_terminal(Production production);
 
 
