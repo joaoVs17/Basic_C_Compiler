@@ -2,8 +2,9 @@
 #define PARSER_H
 
 #include "../lexer/lexer.h"
-#include "../stack/stack.h"
+#include "../symbol_stack/symbol_stack.h"
 #include "../ast/ast.h"
+#include "../node_stack/node_stack.h"
 #include "../production/production.h"
  
 int is_terminal(GrammarSymbol s);
@@ -30,6 +31,7 @@ int apply_production(ParseStack *stack, Production production);
 int handle_terminal_top(GrammarSymbol top, Token *current_token, Parser *parser);
 int handle_non_terminal_top(GrammarSymbol top, Token * current_token, ParseStack * stack);
 int handle_ast_construct(Production applied_produciton, GrammarSymbol unstacked_symbol, Token * current_token);
+GrammarSymbol production_non_terminal(Production production);
 
 
 #endif

@@ -1,8 +1,8 @@
-#include "stack.h"
+#include "symbol_stack.h"
 
 #include <stdio.h>
 
-void parse_stack_init(ParseStack *stack) {
+void symbol_stack_init(ParseStack *stack) {
   if (!stack) {
     return;
   }
@@ -10,12 +10,12 @@ void parse_stack_init(ParseStack *stack) {
   stack->count = 0;
 }
 
-void parse_stack_clear(ParseStack *stack) {
-  parse_stack_init(stack);
+void symbol_stack_clear(ParseStack *stack) {
+  symbol_stack_init(stack);
 }
 
-int parse_stack_push(ParseStack *stack, GrammarSymbol symbol) {
-  if (!stack || parse_stack_is_full(stack)) {
+int symbol_stack_push(ParseStack *stack, GrammarSymbol symbol) {
+  if (!stack || symbol_stack_is_full(stack)) {
     return 0;
   }
 
@@ -24,8 +24,8 @@ int parse_stack_push(ParseStack *stack, GrammarSymbol symbol) {
   return 1;
 }
 
-int parse_stack_pop(ParseStack *stack, GrammarSymbol *out_symbol) {
-  if (!stack || !out_symbol || parse_stack_is_empty(stack)) {
+int symbol_stack_pop(ParseStack *stack, GrammarSymbol *out_symbol) {
+  if (!stack || !out_symbol || symbol_stack_is_empty(stack)) {
     return 0;
   }
 
@@ -34,8 +34,8 @@ int parse_stack_pop(ParseStack *stack, GrammarSymbol *out_symbol) {
   return 1;
 }
 
-int parse_stack_peek(const ParseStack *stack, GrammarSymbol *out_symbol) {
-  if (!stack || !out_symbol || parse_stack_is_empty(stack)) {
+int symbol_stack_peek(const ParseStack *stack, GrammarSymbol *out_symbol) {
+  if (!stack || !out_symbol || symbol_stack_is_empty(stack)) {
     return 0;
   }
 
@@ -43,15 +43,15 @@ int parse_stack_peek(const ParseStack *stack, GrammarSymbol *out_symbol) {
   return 1;
 }
 
-int parse_stack_is_empty(const ParseStack *stack) {
+int symbol_stack_is_empty(const ParseStack *stack) {
   return !stack || stack->count == 0;
 }
 
-int parse_stack_is_full(const ParseStack *stack) {
+int symbol_stack_is_full(const ParseStack *stack) {
   return stack && stack->count >= PARSE_STACK_MAX;
 }
 
-int parse_stack_size(const ParseStack *stack) {
+int symbol_stack_size(const ParseStack *stack) {
   if (!stack) {
     return 0;
   }
@@ -59,7 +59,7 @@ int parse_stack_size(const ParseStack *stack) {
   return stack->count;
 }
 
-void parse_stack_print(const ParseStack *stack) {
+void symbol_stack_print(const ParseStack *stack) {
   printf("[\n");
   for (int i = 0; i < stack->count; i++) {
     print_symbol(stack->items[i]);
@@ -160,13 +160,13 @@ void print_symbol(GrammarSymbol sym) {
   printf("%s\n", grammar_symbol_to_string(sym));
 }
 
-int parse_stack_push_many(ParseStack *stack, int count, ...) {
+int symbol_stack_push_many(ParseStack *stack, int count, ...) {
   va_list args;
   va_start(args, count);
 
   for (int i = 0; i < count; i++) {
     GrammarSymbol s = va_arg(args, GrammarSymbol);
-    if (!parse_stack_push(stack, s)) return 0;
+    if (!symbol_stack_push(stack, s)) return 0;
   }
   va_end(args);
   return 1;

@@ -13,18 +13,18 @@ int init_parser(Parser *parser, Pointer *pointer) {
 }
 
 int parse(Parser *p, ParseStack *stack) {
-  // parse_stack_push(stack, SYM_EOF);
-  parse_stack_push(stack, SYM_CODE);
+  // symbol_stack_push(stack, SYM_EOF);
+  symbol_stack_push(stack, SYM_CODE);
   p->ast = create_ast(AST_CODE, NULL);
   current_node = p->ast;
   next(p);
   int count = 0;
-  while (!parse_stack_is_empty(stack)) {
+  while (!symbol_stack_is_empty(stack)) {
     // if (count >= 2) return 0;
     GrammarSymbol top;
     Token *current_token = p->t;
-    parse_stack_print(stack);
-    parse_stack_pop(stack, &top);
+    symbol_stack_print(stack);
+    symbol_stack_pop(stack, &top);
 
     // prt_token(current_token, 1);
 
@@ -82,6 +82,7 @@ int handle_non_terminal_top(GrammarSymbol top, Token *current_token, ParseStack 
   } else {
     if (!apply_production(stack, production))
       return 0;
+    handle_ast_construct(production, top, current_token);
   }
   return 1;
 }
@@ -265,21 +266,21 @@ GrammarSymbol token_to_symbol(const Token *token) {
     break;
   }
 
-  return SYM_EPSILON; /* ou SYM_INVALID */
+  return SYM_EPSILON; // ou SYM_INVALID 
 }
 
 int apply_production(ParseStack *stack, Production production) {
   switch (production) {
   case PROD_CODE_BLOCK_EOF:
-    return parse_stack_push_many(stack, 2, SYM_EOF, SYM_BLOCK);
+    return symbol_stack_push_many(stack, 2, SYM_EOF, SYM_BLOCK);
     break;
 
   case PROD_BLOCK_LBRACE_PROG_RBRACE:
-    return parse_stack_push_many(stack, 3, SYM_RBRACE, SYM_PROG, SYM_LBRACE);
+    return symbol_stack_push_many(stack, 3, SYM_RBRACE, SYM_PROG, SYM_LBRACE);
     break;
 
   case PROD_PROG_DECL_PROG:
-    return parse_stack_push_many(stack, 2, SYM_PROG, SYM_DECL);
+    return symbol_stack_push_many(stack, 2, SYM_PROG, SYM_DECL);
     break;
 
   case PROD_PROG_EPSILON:
@@ -287,46 +288,46 @@ int apply_production(ParseStack *stack, Production production) {
     break;
 
   case PROD_DECL_VAR_DECLARATION:
-    return parse_stack_push_many(stack, 1, SYM_VAR_DECLARATION);
+    return symbol_stack_push_many(stack, 1, SYM_VAR_DECLARATION);
     break;
 
   case PROD_DECL_ASSIGNMENT:
-    return parse_stack_push_many(stack, 1, SYM_ASSIGNMENT);
+    return symbol_stack_push_many(stack, 1, SYM_ASSIGNMENT);
     break;
 
   case PROD_DECL_CONDITION:
-    return parse_stack_push_many(stack, 1, SYM_CONDITION);
+    return symbol_stack_push_many(stack, 1, SYM_CONDITION);
     break;
 
   case PROD_DECL_WHILE_LOOP:
-    return parse_stack_push_many(stack, 1, SYM_WHILE_LOOP);
+    return symbol_stack_push_many(stack, 1, SYM_WHILE_LOOP);
     break;
 
   case PROD_VAR_DECLARATION_TYPE_IDENTIFIER_VAR_DECLARATION_TAIL:
-    return parse_stack_push_many(stack, 3, SYM_VAR_DECLARATION_TAIL,
+    return symbol_stack_push_many(stack, 3, SYM_VAR_DECLARATION_TAIL,
                                  SYM_IDENTIFIER, SYM_TYPE);
     break;
 
   case PROD_VAR_DECLARATION_TAIL_SEMICOLON:
-    return parse_stack_push_many(stack, 1, SYM_SEMICOLON);
+    return symbol_stack_push_many(stack, 1, SYM_SEMICOLON);
     break;
 
   case PROD_VAR_DECLARATION_TAIL_ASSIGN_EXPR_SEMICOLON:
-    return parse_stack_push_many(stack, 3, SYM_SEMICOLON, SYM_EXPR, SYM_ASSIGN);
+    return symbol_stack_push_many(stack, 3, SYM_SEMICOLON, SYM_EXPR, SYM_ASSIGN);
     break;
 
   case PROD_ASSIGNMENT_IDENTIFIER_ASSIGN_EXPR_SEMICOLON:
-    return parse_stack_push_many(stack, 4, SYM_SEMICOLON, SYM_EXPR, SYM_ASSIGN,
+    return symbol_stack_push_many(stack, 4, SYM_SEMICOLON, SYM_EXPR, SYM_ASSIGN,
                                  SYM_IDENTIFIER);
     break;
 
   case PROD_CONDITION_IF_LPAREN_EXPR_RPAREN_BLOCK_CONDITION_TAIL:
-    return parse_stack_push_many(stack, 6, SYM_CONDITION_TAIL, SYM_BLOCK,
+    return symbol_stack_push_many(stack, 6, SYM_CONDITION_TAIL, SYM_BLOCK,
                                  SYM_RPAREN, SYM_EXPR, SYM_LPAREN, SYM_IF);
     break;
 
   case PROD_CONDITION_TAIL_ELSE_BLOCK:
-    return parse_stack_push_many(stack, 2, SYM_BLOCK, SYM_ELSE);
+    return symbol_stack_push_many(stack, 2, SYM_BLOCK, SYM_ELSE);
     break;
 
   case PROD_CONDITION_TAIL_EPSILON:
@@ -334,21 +335,21 @@ int apply_production(ParseStack *stack, Production production) {
     break;
 
   case PROD_WHILE_LOOP_WHILE_LPAREN_EXPR_RPAREN_BLOCK:
-    return parse_stack_push_many(stack, 5, SYM_BLOCK, SYM_RPAREN, SYM_EXPR,
+    return symbol_stack_push_many(stack, 5, SYM_BLOCK, SYM_RPAREN, SYM_EXPR,
                                  SYM_LPAREN, SYM_WHILE);
     break;
 
   case PROD_EXPR_LOGICAL_OR_EXPR:
-    return parse_stack_push_many(stack, 1, SYM_LOGICAL_OR_EXPR);
+    return symbol_stack_push_many(stack, 1, SYM_LOGICAL_OR_EXPR);
     break;
 
   case PROD_LOGICAL_OR_EXPR_LOGICAL_AND_EXPR_LOGICAL_OR_EXPR_TAIL:
-    return parse_stack_push_many(stack, 2, SYM_LOGICAL_OR_EXPR_TAIL,
+    return symbol_stack_push_many(stack, 2, SYM_LOGICAL_OR_EXPR_TAIL,
                                  SYM_LOGICAL_AND_EXPR);
     break;
 
   case PROD_LOGICAL_OR_EXPR_TAIL_OR_LOGICAL_AND_EXPR_LOGICAL_OR_EXPR_TAIL:
-    return parse_stack_push_many(stack, 3, SYM_LOGICAL_OR_EXPR_TAIL,
+    return symbol_stack_push_many(stack, 3, SYM_LOGICAL_OR_EXPR_TAIL,
                                  SYM_LOGICAL_AND_EXPR, SYM_OR);
     break;
 
@@ -357,12 +358,12 @@ int apply_production(ParseStack *stack, Production production) {
     break;
 
   case PROD_LOGICAL_AND_EXPR_EQUALITY_EXPR_LOGICAL_AND_EXPR_TAIL:
-    return parse_stack_push_many(stack, 2, SYM_LOGICAL_AND_EXPR_TAIL,
+    return symbol_stack_push_many(stack, 2, SYM_LOGICAL_AND_EXPR_TAIL,
                                  SYM_EQUALITY_EXPR);
     break;
 
   case PROD_LOGICAL_AND_EXPR_TAIL_AND_EQUALITY_EXPR_LOGICAL_AND_EXPR_TAIL:
-    return parse_stack_push_many(stack, 3, SYM_LOGICAL_AND_EXPR_TAIL,
+    return symbol_stack_push_many(stack, 3, SYM_LOGICAL_AND_EXPR_TAIL,
                                  SYM_EQUALITY_EXPR, SYM_AND);
     break;
 
@@ -371,17 +372,17 @@ int apply_production(ParseStack *stack, Production production) {
     break;
 
   case PROD_EQUALITY_EXPR_RELATIONAL_EXPR_EQUALITY_EXPR_TAIL:
-    return parse_stack_push_many(stack, 2, SYM_EQUALITY_EXPR_TAIL,
+    return symbol_stack_push_many(stack, 2, SYM_EQUALITY_EXPR_TAIL,
                                  SYM_RELATIONAL_EXPR);
     break;
 
   case PROD_EQUALITY_EXPR_TAIL_EQUAL_RELATIONAL_EXPR_EQUALITY_EXPR_TAIL:
-    return parse_stack_push_many(stack, 3, SYM_EQUALITY_EXPR_TAIL,
+    return symbol_stack_push_many(stack, 3, SYM_EQUALITY_EXPR_TAIL,
                                  SYM_RELATIONAL_EXPR, SYM_EQUAL);
     break;
 
   case PROD_EQUALITY_EXPR_TAIL_NOT_EQUAL_RELATIONAL_EXPR_EQUALITY_EXPR_TAIL:
-    return parse_stack_push_many(stack, 3, SYM_EQUALITY_EXPR_TAIL,
+    return symbol_stack_push_many(stack, 3, SYM_EQUALITY_EXPR_TAIL,
                                  SYM_RELATIONAL_EXPR, SYM_NOT_EQUAL);
     break;
 
@@ -390,27 +391,27 @@ int apply_production(ParseStack *stack, Production production) {
     break;
 
   case PROD_RELATIONAL_EXPR_ADD_EXPR_RELATIONAL_EXPR_TAIL:
-    return parse_stack_push_many(stack, 2, SYM_RELATIONAL_EXPR_TAIL,
+    return symbol_stack_push_many(stack, 2, SYM_RELATIONAL_EXPR_TAIL,
                                  SYM_ADD_EXPR);
     break;
 
   case PROD_RELATIONAL_EXPR_TAIL_LESS_ADD_EXPR_RELATIONAL_EXPR_TAIL:
-    return parse_stack_push_many(stack, 3, SYM_RELATIONAL_EXPR_TAIL,
+    return symbol_stack_push_many(stack, 3, SYM_RELATIONAL_EXPR_TAIL,
                                  SYM_ADD_EXPR, SYM_LESS);
     break;
 
   case PROD_RELATIONAL_EXPR_TAIL_LESS_EQUAL_ADD_EXPR_RELATIONAL_EXPR_TAIL:
-    return parse_stack_push_many(stack, 3, SYM_RELATIONAL_EXPR_TAIL,
+    return symbol_stack_push_many(stack, 3, SYM_RELATIONAL_EXPR_TAIL,
                                  SYM_ADD_EXPR, SYM_LESS_EQUAL);
     break;
 
   case PROD_RELATIONAL_EXPR_TAIL_GREATER_ADD_EXPR_RELATIONAL_EXPR_TAIL:
-    return parse_stack_push_many(stack, 3, SYM_RELATIONAL_EXPR_TAIL,
+    return symbol_stack_push_many(stack, 3, SYM_RELATIONAL_EXPR_TAIL,
                                  SYM_ADD_EXPR, SYM_GREATER);
     break;
 
   case PROD_RELATIONAL_EXPR_TAIL_GREATER_EQUAL_ADD_EXPR_RELATIONAL_EXPR_TAIL:
-    return parse_stack_push_many(stack, 3, SYM_RELATIONAL_EXPR_TAIL,
+    return symbol_stack_push_many(stack, 3, SYM_RELATIONAL_EXPR_TAIL,
                                  SYM_ADD_EXPR, SYM_GREATER_EQUAL);
     break;
 
@@ -419,16 +420,16 @@ int apply_production(ParseStack *stack, Production production) {
     break;
 
   case PROD_ADD_EXPR_TERM_ADD_EXPR_TAIL:
-    return parse_stack_push_many(stack, 2, SYM_ADD_EXPR_TAIL, SYM_TERM);
+    return symbol_stack_push_many(stack, 2, SYM_ADD_EXPR_TAIL, SYM_TERM);
     break;
 
   case PROD_ADD_EXPR_TAIL_PLUS_TERM_ADD_EXPR_TAIL:
-    return parse_stack_push_many(stack, 3, SYM_ADD_EXPR_TAIL, SYM_TERM,
+    return symbol_stack_push_many(stack, 3, SYM_ADD_EXPR_TAIL, SYM_TERM,
                                  SYM_PLUS);
     break;
 
   case PROD_ADD_EXPR_TAIL_MINUS_TERM_ADD_EXPR_TAIL:
-    return parse_stack_push_many(stack, 3, SYM_ADD_EXPR_TAIL, SYM_TERM,
+    return symbol_stack_push_many(stack, 3, SYM_ADD_EXPR_TAIL, SYM_TERM,
                                  SYM_MINUS);
     break;
 
@@ -437,16 +438,16 @@ int apply_production(ParseStack *stack, Production production) {
     break;
 
   case PROD_TERM_FACTOR_TERM_TAIL:
-    return parse_stack_push_many(stack, 2, SYM_TERM_TAIL, SYM_FACTOR);
+    return symbol_stack_push_many(stack, 2, SYM_TERM_TAIL, SYM_FACTOR);
     break;
 
   case PROD_TERM_TAIL_MULTIPLY_FACTOR_TERM_TAIL:
-    return parse_stack_push_many(stack, 3, SYM_TERM_TAIL, SYM_FACTOR,
+    return symbol_stack_push_many(stack, 3, SYM_TERM_TAIL, SYM_FACTOR,
                                  SYM_MULTIPLY);
     break;
 
   case PROD_TERM_TAIL_DIVIDE_FACTOR_TERM_TAIL:
-    return parse_stack_push_many(stack, 3, SYM_TERM_TAIL, SYM_FACTOR,
+    return symbol_stack_push_many(stack, 3, SYM_TERM_TAIL, SYM_FACTOR,
                                  SYM_DIVIDE);
     break;
 
@@ -455,43 +456,150 @@ int apply_production(ParseStack *stack, Production production) {
     break;
 
   case PROD_FACTOR_IDENTIFIER:
-    return parse_stack_push_many(stack, 1, SYM_IDENTIFIER);
+    return symbol_stack_push_many(stack, 1, SYM_IDENTIFIER);
     break;
 
   case PROD_FACTOR_NUMBER:
-    return parse_stack_push_many(stack, 1, SYM_NUMBER);
+    return symbol_stack_push_many(stack, 1, SYM_NUMBER);
     break;
 
   case PROD_FACTOR_STRING_LITERAL:
-    return parse_stack_push_many(stack, 1, SYM_STRING_LITERAL);
+    return symbol_stack_push_many(stack, 1, SYM_STRING_LITERAL);
     break;
 
   case PROD_FACTOR_CHAR_LITERAL:
-    return parse_stack_push_many(stack, 1, SYM_CHAR_LITERAL);
+    return symbol_stack_push_many(stack, 1, SYM_CHAR_LITERAL);
     break;
 
   case PROD_FACTOR_LPAREN_EXPR_RPAREN:
-    return parse_stack_push_many(stack, 3, SYM_RPAREN, SYM_EXPR, SYM_LPAREN);
+    return symbol_stack_push_many(stack, 3, SYM_RPAREN, SYM_EXPR, SYM_LPAREN);
     break;
 
   case PROD_TYPE_INT:
-    return parse_stack_push_many(stack, 1, SYM_INT);
+    return symbol_stack_push_many(stack, 1, SYM_INT);
     break;
 
   case PROD_TYPE_FLOAT:
-    return parse_stack_push_many(stack, 1, SYM_FLOAT);
+    return symbol_stack_push_many(stack, 1, SYM_FLOAT);
     break;
 
   case PROD_TYPE_CHAR:
-    return parse_stack_push_many(stack, 1, SYM_CHAR);
+    return symbol_stack_push_many(stack, 1, SYM_CHAR);
     break;
 
   case PROD_TYPE_STRING:
-    return parse_stack_push_many(stack, 1, SYM_STRING);
+    return symbol_stack_push_many(stack, 1, SYM_STRING);
     break;
 
   default:
     return 0;
     break;
+  }
+}
+
+GrammarSymbol production_non_terminal(Production production) {
+  switch (production) {
+  case PROD_CODE_BLOCK_EOF:
+    return SYM_CODE;
+
+  case PROD_BLOCK_LBRACE_PROG_RBRACE:
+    return SYM_BLOCK;
+
+  case PROD_PROG_DECL_PROG:
+  case PROD_PROG_EPSILON:
+    return SYM_PROG;
+
+  case PROD_DECL_VAR_DECLARATION:
+  case PROD_DECL_ASSIGNMENT:
+  case PROD_DECL_CONDITION:
+  case PROD_DECL_WHILE_LOOP:
+    return SYM_DECL;
+
+  case PROD_VAR_DECLARATION_TYPE_IDENTIFIER_VAR_DECLARATION_TAIL:
+    return SYM_VAR_DECLARATION;
+
+  case PROD_VAR_DECLARATION_TAIL_SEMICOLON:
+  case PROD_VAR_DECLARATION_TAIL_ASSIGN_EXPR_SEMICOLON:
+    return SYM_VAR_DECLARATION_TAIL;
+
+  case PROD_ASSIGNMENT_IDENTIFIER_ASSIGN_EXPR_SEMICOLON:
+    return SYM_ASSIGNMENT;
+
+  case PROD_CONDITION_IF_LPAREN_EXPR_RPAREN_BLOCK_CONDITION_TAIL:
+    return SYM_CONDITION;
+
+  case PROD_CONDITION_TAIL_ELSE_BLOCK:
+  case PROD_CONDITION_TAIL_EPSILON:
+    return SYM_CONDITION_TAIL;
+
+  case PROD_WHILE_LOOP_WHILE_LPAREN_EXPR_RPAREN_BLOCK:
+    return SYM_WHILE_LOOP;
+
+  case PROD_EXPR_LOGICAL_OR_EXPR:
+    return SYM_EXPR;
+
+  case PROD_LOGICAL_OR_EXPR_LOGICAL_AND_EXPR_LOGICAL_OR_EXPR_TAIL:
+    return SYM_LOGICAL_OR_EXPR;
+
+  case PROD_LOGICAL_OR_EXPR_TAIL_OR_LOGICAL_AND_EXPR_LOGICAL_OR_EXPR_TAIL:
+  case PROD_LOGICAL_OR_EXPR_TAIL_EPSILON:
+    return SYM_LOGICAL_OR_EXPR_TAIL;
+
+  case PROD_LOGICAL_AND_EXPR_EQUALITY_EXPR_LOGICAL_AND_EXPR_TAIL:
+    return SYM_LOGICAL_AND_EXPR;
+
+  case PROD_LOGICAL_AND_EXPR_TAIL_AND_EQUALITY_EXPR_LOGICAL_AND_EXPR_TAIL:
+  case PROD_LOGICAL_AND_EXPR_TAIL_EPSILON:
+    return SYM_LOGICAL_AND_EXPR_TAIL;
+
+  case PROD_EQUALITY_EXPR_RELATIONAL_EXPR_EQUALITY_EXPR_TAIL:
+    return SYM_EQUALITY_EXPR;
+
+  case PROD_EQUALITY_EXPR_TAIL_EQUAL_RELATIONAL_EXPR_EQUALITY_EXPR_TAIL:
+  case PROD_EQUALITY_EXPR_TAIL_NOT_EQUAL_RELATIONAL_EXPR_EQUALITY_EXPR_TAIL:
+  case PROD_EQUALITY_EXPR_TAIL_EPSILON:
+    return SYM_EQUALITY_EXPR_TAIL;
+
+  case PROD_RELATIONAL_EXPR_ADD_EXPR_RELATIONAL_EXPR_TAIL:
+    return SYM_RELATIONAL_EXPR;
+
+  case PROD_RELATIONAL_EXPR_TAIL_LESS_ADD_EXPR_RELATIONAL_EXPR_TAIL:
+  case PROD_RELATIONAL_EXPR_TAIL_LESS_EQUAL_ADD_EXPR_RELATIONAL_EXPR_TAIL:
+  case PROD_RELATIONAL_EXPR_TAIL_GREATER_ADD_EXPR_RELATIONAL_EXPR_TAIL:
+  case PROD_RELATIONAL_EXPR_TAIL_GREATER_EQUAL_ADD_EXPR_RELATIONAL_EXPR_TAIL:
+  case PROD_RELATIONAL_EXPR_TAIL_EPSILON:
+    return SYM_RELATIONAL_EXPR_TAIL;
+
+  case PROD_ADD_EXPR_TERM_ADD_EXPR_TAIL:
+    return SYM_ADD_EXPR;
+
+  case PROD_ADD_EXPR_TAIL_PLUS_TERM_ADD_EXPR_TAIL:
+  case PROD_ADD_EXPR_TAIL_MINUS_TERM_ADD_EXPR_TAIL:
+  case PROD_ADD_EXPR_TAIL_EPSILON:
+    return SYM_ADD_EXPR_TAIL;
+
+  case PROD_TERM_FACTOR_TERM_TAIL:
+    return SYM_TERM;
+
+  case PROD_TERM_TAIL_MULTIPLY_FACTOR_TERM_TAIL:
+  case PROD_TERM_TAIL_DIVIDE_FACTOR_TERM_TAIL:
+  case PROD_TERM_TAIL_EPSILON:
+    return SYM_TERM_TAIL;
+
+  case PROD_FACTOR_IDENTIFIER:
+  case PROD_FACTOR_NUMBER:
+  case PROD_FACTOR_STRING_LITERAL:
+  case PROD_FACTOR_CHAR_LITERAL:
+  case PROD_FACTOR_LPAREN_EXPR_RPAREN:
+    return SYM_FACTOR;
+
+  case PROD_TYPE_INT:
+  case PROD_TYPE_FLOAT:
+  case PROD_TYPE_CHAR:
+  case PROD_TYPE_STRING:
+    return SYM_TYPE;
+
+  default:
+    return SYM_EPSILON;
   }
 }

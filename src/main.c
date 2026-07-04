@@ -21,7 +21,7 @@ int main() {
   Parser parser;
   ParseStack stack;
   init_parser(&parser, pointer);
-  parse_stack_init(&stack);
+  symbol_stack_init(&stack);
   if (parse(&parser, &stack)) {
     printf("ESCREVESTE UM C QUE EU CÁ SEI BEM LER\n");
   } else {

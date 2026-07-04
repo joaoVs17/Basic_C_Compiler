@@ -1,0 +1,68 @@
+#include "node_stack.h"
+
+#include <stdio.h>
+
+void node_stack_init(NodeStack *stack) {
+  if (!stack) {
+    return;
+  }
+
+  stack->count = 0;
+}
+
+void node_stack_clear(NodeStack *stack) {
+  node_stack_init(stack);
+}
+
+int node_stack_push(NodeStack *stack, ASTNode *node) {
+  if (!stack || node_stack_is_full(stack)) {
+    return 0;
+  }
+
+  stack->items[stack->count] = node;
+  stack->count++;
+  return 1;
+}
+
+int node_stack_pop(NodeStack *stack, ASTNode **out_node) {
+  if (!stack || !out_node || node_stack_is_empty(stack)) {
+    return 0;
+  }
+
+  stack->count--;
+  *out_node = stack->items[stack->count];
+  return 1;
+}
+
+int node_stack_peek(const NodeStack *stack, ASTNode **out_node) {
+  if (!stack || !out_node || node_stack_is_empty(stack)) {
+    return 0;
+  }
+
+  *out_node = stack->items[stack->count - 1];
+  return 1;
+}
+
+int node_stack_is_empty(const NodeStack *stack) {
+  return !stack || stack->count == 0;
+}
+
+int node_stack_is_full(const NodeStack *stack) {
+  return stack && stack->count >= NODE_STACK_MAX;
+}
+
+int node_stack_size(const NodeStack *stack) {
+  if (!stack) {
+    return 0;
+  }
+
+  return stack->count;
+}
+
+void node_stack_print(const NodeStack *stack) {
+  printf("[\n");
+  for (int i = 0; i < stack->count; i++) {
+    printf("  %s\n", get_node_type_str(stack->items[i]->type));
+  }
+  printf("]\n");
+}

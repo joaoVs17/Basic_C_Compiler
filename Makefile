@@ -8,7 +8,8 @@ SRC = \
 	src/parser/parser.c \
 	src/lexer/lexer.c \
 	src/ast/ast.c \
-	src/stack/stack.c \
+	src/symbol_stack/symbol_stack.c \
+	src/node_stack/node_stack.c \
 	src/production/production.c
 
 OBJ = $(SRC:.c=.o)

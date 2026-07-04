@@ -1,5 +1,5 @@
-#ifndef STACK_H
-#define STACK_H
+#ifndef SYMBOL_STACK_H
+#define SYMBOL_STACK_H
 
 #include <stdarg.h> 
 
@@ -105,18 +105,18 @@ typedef struct {
   int count;
 } ParseStack;
 
-void parse_stack_init(ParseStack *stack);
-void parse_stack_clear(ParseStack *stack);
+void symbol_stack_init(ParseStack *stack);
+void symbol_stack_clear(ParseStack *stack);
 
-int parse_stack_push(ParseStack *stack, GrammarSymbol symbol);
-int parse_stack_push_many(ParseStack *stack, int count, ...);
-int parse_stack_pop(ParseStack *stack, GrammarSymbol *out_symbol);
-int parse_stack_peek(const ParseStack *stack, GrammarSymbol *out_symbol);
+int symbol_stack_push(ParseStack *stack, GrammarSymbol symbol);
+int symbol_stack_push_many(ParseStack *stack, int count, ...);
+int symbol_stack_pop(ParseStack *stack, GrammarSymbol *out_symbol);
+int symbol_stack_peek(const ParseStack *stack, GrammarSymbol *out_symbol);
 
-int parse_stack_is_empty(const ParseStack *stack);
-int parse_stack_is_full(const ParseStack *stack);
-int parse_stack_size(const ParseStack *stack);
-void parse_stack_print(const ParseStack *stack);
+int symbol_stack_is_empty(const ParseStack *stack);
+int symbol_stack_is_full(const ParseStack *stack);
+int symbol_stack_size(const ParseStack *stack);
+void symbol_stack_print(const ParseStack *stack);
 
 char *grammar_symbol_to_string(GrammarSymbol sym);
 void print_symbol(GrammarSymbol sym);
