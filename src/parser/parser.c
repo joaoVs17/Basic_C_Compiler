@@ -272,7 +272,7 @@ GrammarSymbol token_to_symbol(const Token *token) {
   return SYM_EPSILON; // ou SYM_INVALID 
 }
 
-static ASTNode *open_node(NodeStack *node_stack, ASTNodeType type) {
+static ASTNode *stack_node(NodeStack *node_stack, ASTNodeType type) {
   ASTNode *node = create_ast(type, NULL);
   node_stack_push(node_stack, node);
   return node;
@@ -285,7 +285,7 @@ int apply_production(ParseStack *stack, NodeStack * node_stack, Production produ
     break;
 
   case PROD_BLOCK_LBRACE_PROG_RBRACE:
-    open_node(node_stack, AST_BLOCK);
+    stack_node(node_stack, AST_BLOCK);
     return symbol_stack_push_many(stack, 3, SYM_RBRACE, SYM_PROG, SYM_LBRACE);
     break;
 
@@ -314,7 +314,7 @@ int apply_production(ParseStack *stack, NodeStack * node_stack, Production produ
     break;
 
   case PROD_VAR_DECLARATION_TYPE_IDENTIFIER_VAR_DECLARATION_TAIL:
-    open_node(node_stack, AST_VAR_DECLARATION);
+    stack_node(node_stack, AST_VAR_DECLARATION);
     return symbol_stack_push_many(stack, 3, SYM_VAR_DECLARATION_TAIL,
                                  SYM_IDENTIFIER, SYM_TYPE);
     break;
@@ -328,13 +328,13 @@ int apply_production(ParseStack *stack, NodeStack * node_stack, Production produ
     break;
 
   case PROD_ASSIGNMENT_IDENTIFIER_ASSIGN_EXPR_SEMICOLON:
-    open_node(node_stack, AST_ASSIGNMENT);
+    stack_node(node_stack, AST_ASSIGNMENT);
     return symbol_stack_push_many(stack, 4, SYM_SEMICOLON, SYM_EXPR, SYM_ASSIGN,
                                  SYM_IDENTIFIER);
     break;
 
   case PROD_CONDITION_IF_LPAREN_EXPR_RPAREN_BLOCK_CONDITION_TAIL:
-    open_node(node_stack, AST_IF);
+    stack_node(node_stack, AST_IF);
     return symbol_stack_push_many(stack, 6, SYM_CONDITION_TAIL, SYM_BLOCK,
                                  SYM_RPAREN, SYM_EXPR, SYM_LPAREN, SYM_IF);
     break;
@@ -348,7 +348,7 @@ int apply_production(ParseStack *stack, NodeStack * node_stack, Production produ
     break;
 
   case PROD_WHILE_LOOP_WHILE_LPAREN_EXPR_RPAREN_BLOCK:
-    open_node(node_stack, AST_WHILE);
+    stack_node(node_stack, AST_WHILE);
     return symbol_stack_push_many(stack, 5, SYM_BLOCK, SYM_RPAREN, SYM_EXPR,
                                  SYM_LPAREN, SYM_WHILE);
     break;
