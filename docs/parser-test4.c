@@ -1,7 +1,9 @@
 {
-  if (batatas + 1 == 2) {
-    batatas = 1;
+  int x = 2;
+
+  if (x < 2) {
+    x = x + 2;
   } else {
-    batatas = 2;
+    x = x + 1;
   }
 }
