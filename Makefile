@@ -8,7 +8,7 @@ SRC = \
 	src/parser/parser.c \
 	src/lexer/lexer.c \
 	src/ast/ast.c \
-	src/symbol_stack/symbol_stack.c \
+	src/parse_stack/parse_stack.c \
 	src/node_stack/node_stack.c \
 	src/production/production.c
 

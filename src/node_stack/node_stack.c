@@ -66,3 +66,39 @@ void node_stack_print(const NodeStack *stack) {
   }
   printf("]\n");
 }
+
+int push_leaf(NodeStack *stack, ASTNodeType type, Token *token) {
+  ASTNode *node = create_ast(type, token);
+  if (node == NULL) {
+    return 0;
+  }
+  return node_stack_push(stack, node);
+}
+
+int node_stack_reduce(NodeStack *stack, ASTNodeType type, Token *token, int n) {
+  if (!stack || n < 0 || n > NODE_STACK_REDUCE_MAX) {
+    return 0;
+  }
+
+  // desempilha n ASTNodes. 
+  // O máximo de ASTNodes que podem ser desempilhados é NODE_STACK_REDUCE_MAX
+  // desempilha em ordem inversa já que na pilha o último a entrar é o primeiro a sair
+  ASTNode *children[NODE_STACK_REDUCE_MAX];
+  for (int i = n - 1; i >= 0; i--) {
+    if (!node_stack_pop(stack, &children[i])) {
+      return 0;
+    }
+  }
+
+  ASTNode *parent = create_ast(type, token);
+  if (parent == NULL) {
+    return 0;
+  }
+  
+  //Coloca os ASTNodes desempilhados no pai
+  for (int i = 0; i < n; i++) {
+    add_child(parent, children[i]);
+  }
+
+  return node_stack_push(stack, parent);
+}

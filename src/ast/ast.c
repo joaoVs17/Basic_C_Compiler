@@ -104,6 +104,10 @@ const char *get_node_type_str(ASTNodeType type) {
     return "FOR";
   case AST_RETURN:
     return "RETURN";
+  case AST_VAR_DECLARATION:
+    return "VAR_DECLARATION";
+  case AST_TYPE:
+    return "TYPE";
   case AST_UNKNOWN:
     return "UNKNOWN";
   default:

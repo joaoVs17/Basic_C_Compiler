@@ -1,7 +1,7 @@
 #ifndef PRODUCTION_H
 #define PRODUCTION_H
 
-#include "../symbol_stack/symbol_stack.h"
+#include "../parse_stack/parse_stack.h"
 
 typedef enum {
 

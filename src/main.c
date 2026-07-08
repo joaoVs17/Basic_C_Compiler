@@ -3,7 +3,7 @@
 
 int main() {
 
-  char *file_path = "./docs/parser-test1.c";
+  char *file_path = "./docs/parser-test4.c";
   Pointer *pointer = (Pointer *)malloc(sizeof(Pointer));
   if (!init_pointer(file_path, pointer)) {
     printf("FAILED TO INIT POINTER\n");
@@ -21,7 +21,7 @@ int main() {
   Parser parser;
   ParseStack stack;
   init_parser(&parser, pointer);
-  symbol_stack_init(&stack);
+  parse_stack_init(&stack);
   if (parse(&parser, &stack)) {
     printf("ESCREVESTE UM C QUE EU CÁ SEI BEM LER\n");
   } else {

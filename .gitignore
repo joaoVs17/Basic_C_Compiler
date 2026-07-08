@@ -3,3 +3,4 @@ programa
 lexer
 *.o
 main
+src/1-old/
