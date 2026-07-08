@@ -15,7 +15,7 @@ int init_parser(Parser *parser, Pointer *pointer) {
 
 int parse(Parser *p, ParseStack *stack) {
 
-  // declaracções de fora do loop
+  // declarações de fora do loop
   StackItem *current_item = (StackItem *)malloc(sizeof(StackItem));
   NodeStack *node_stack = (NodeStack *)malloc(sizeof(NodeStack));
   Token *current_token;
@@ -32,6 +32,7 @@ int parse(Parser *p, ParseStack *stack) {
   // Pedir o primeiro token para o lexer
   next(p);
 
+  printf(".text\n.globl main\nmain:\n");
   while (!parse_stack_is_empty(stack)) {
     // parse_stack_print(stack);
     // printf("\n\n");
@@ -51,6 +52,12 @@ int parse(Parser *p, ParseStack *stack) {
         return 0;
     }
   }
+
+  printf("\n\tli $v0, 10\n\tsyscall\n"); // é a syscall de saída
+  printf(".data\n");                     // Data vem dps
+  for (int i = 0; i < symcount; i++)
+    printf("%s: .word 0\n", symtab[i].name);
+
   ASTNode *root;
   if (node_stack_pop(node_stack, &root))
     add_child(p->ast, root);
@@ -70,9 +77,20 @@ int handle_action(StackItem *item, NodeStack *node_stack) {
   // Ex: um if else significa esperar uma expressão, depois mais dois blocos
   // já um if é só uma expressão e depois um bloco
   switch (item->action) {
+  case ACT_EMIT_PUSH_NUM:
+    printf("\tli $t0, %s\n\taddi $sp,$sp,-4\n\tsw $t0,0($sp)\n", item->token->lex);
+    return 1;
+  case ACT_EMIT_PUSH_VAR:
+    printf("\tlw $t0, %s\n\taddi $sp,$sp,-4\n\tsw $t0,0($sp)\n", item->token->lex);
+    return 1;
   case ACT_BUILD_BINARY:
+    printf("\tlw $t1,0($sp)\n\taddi $sp,$sp,4\n");
+    printf("\tlw $t0,0($sp)\n\taddi $sp,$sp,4\n");
+    printf("\t%s $t0, $t0, $t1\n", token_to_mips_instruction(item->token));
+    printf("\taddi $sp,$sp,-4\n\tsw $t0,0($sp)\n");
     return node_stack_reduce(node_stack, AST_BINARY_EXPR, item->token, 2);
   case ACT_BUILD_ASSIGN:
+    printf("\tlw $t0,0($sp)\n\taddi $sp,$sp,4\n\tsw $t0, %s\n", item->token->lex);
     return node_stack_reduce(node_stack, AST_ASSIGNMENT, item->token, 2);
   case ACT_BUILD_VARDECL:
   case ACT_BUILD_VARDECL_INIT: {
@@ -84,9 +102,13 @@ int handle_action(StackItem *item, NodeStack *node_stack) {
     Token *type = decl->children[0]->token;
     Token *id = decl->children[1]->token;
     if (!symtab_insert(id->lex, type->lex, id->row, id->col)) {
-      syntax_error("Variavel ja declarada");
+      syntax_error("Variavel ja declarada"); // botar a coluna dps
       prt_token(id, 1);
       return 0;
+    }
+    // cod
+    if (item->action == ACT_BUILD_VARDECL_INIT) {
+      printf("\tlw $t0,0($sp)\n\taddi $sp,$sp,4\n\tsw $t0, %s\n", id->lex);
     }
     return 1;
   }
@@ -349,10 +371,10 @@ int apply_production(ParseStack *stack, NodeStack *node_stack, Production produc
     return parse_stack_push_many(stack, 2, ACTION(ACT_BUILD_VARDECL, NULL), SYMBOL(SYM_SEMICOLON));
 
   case PROD_VAR_DECLARATION_TAIL_ASSIGN_EXPR_SEMICOLON:
-    return parse_stack_push_many(stack, 4, ACTION(ACT_BUILD_VARDECL_INIT, NULL), SYMBOL(SYM_SEMICOLON), SYMBOL(SYM_EXPR), SYMBOL(SYM_ASSIGN));
+    return parse_stack_push_many(stack, 4, ACTION(ACT_BUILD_VARDECL_INIT, current_token), SYMBOL(SYM_SEMICOLON), SYMBOL(SYM_EXPR), SYMBOL(SYM_ASSIGN));
 
   case PROD_ASSIGNMENT_IDENTIFIER_ASSIGN_EXPR_SEMICOLON:
-    return parse_stack_push_many(stack, 5, ACTION(ACT_BUILD_ASSIGN, NULL), SYMBOL(SYM_SEMICOLON), SYMBOL(SYM_EXPR), SYMBOL(SYM_ASSIGN), SYMBOL(SYM_IDENTIFIER));
+    return parse_stack_push_many(stack, 5, ACTION(ACT_BUILD_ASSIGN, current_token), SYMBOL(SYM_SEMICOLON), SYMBOL(SYM_EXPR), SYMBOL(SYM_ASSIGN), SYMBOL(SYM_IDENTIFIER));
 
   case PROD_CONDITION_IF_LPAREN_EXPR_RPAREN_BLOCK_CONDITION_TAIL:
     return parse_stack_push_many(stack, 6, SYMBOL(SYM_CONDITION_TAIL), SYMBOL(SYM_BLOCK), SYMBOL(SYM_RPAREN), SYMBOL(SYM_EXPR), SYMBOL(SYM_LPAREN), SYMBOL(SYM_IF));
@@ -442,10 +464,11 @@ int apply_production(ParseStack *stack, NodeStack *node_stack, Production produc
     return 1;
 
   case PROD_FACTOR_IDENTIFIER:
-    return parse_stack_push_many(stack, 1, SYMBOL(SYM_IDENTIFIER));
+    return parse_stack_push_many(stack, 2, ACTION(ACT_EMIT_PUSH_VAR, current_token), SYMBOL(SYM_IDENTIFIER));
 
   case PROD_FACTOR_NUMBER:
-    return parse_stack_push_many(stack, 1, SYMBOL(SYM_NUMBER));
+    // Preciso da action porque nem todo literal ou identificador
+    return parse_stack_push_many(stack, 2, ACTION(ACT_EMIT_PUSH_NUM, current_token), SYMBOL(SYM_NUMBER));
 
   case PROD_FACTOR_STRING_LITERAL:
     return parse_stack_push_many(stack, 1, SYMBOL(SYM_STRING_LITERAL));

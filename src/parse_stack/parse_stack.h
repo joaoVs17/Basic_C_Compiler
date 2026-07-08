@@ -125,6 +125,8 @@ typedef enum {
   ACT_OPEN_BLOCK,         // empilha um marcador de início de bloco no NodeStack
   ACT_BUILD_BLOCK,        // colhe tudo até o marcador -> BLOCK
   ACT_BUILD_PROGRAM,      // colhe tudo até o marcador -> PROGRAM/CODE
+  ACT_EMIT_PUSH_NUM,
+  ACT_EMIT_PUSH_VAR,
 } ASTAction;
 
 typedef struct {
