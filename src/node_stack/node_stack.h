@@ -19,7 +19,7 @@ void node_stack_clear(NodeStack *stack);
 
 int node_stack_push(NodeStack *stack, ASTNode *node);
 int node_stack_pop(NodeStack *stack, ASTNode **out_node);
-int node_stack_peek(const NodeStack *stack, ASTNode **out_node);
+int node_stack_peek_top(const NodeStack *stack, ASTNode **out_node);
 
 int node_stack_is_empty(const NodeStack *stack);
 int node_stack_is_full(const NodeStack *stack);

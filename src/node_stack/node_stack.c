@@ -34,7 +34,7 @@ int node_stack_pop(NodeStack *stack, ASTNode **out_node) {
   return 1;
 }
 
-int node_stack_peek(const NodeStack *stack, ASTNode **out_node) {
+int node_stack_peek_top(const NodeStack *stack, ASTNode **out_node) {
   if (!stack || !out_node || node_stack_is_empty(stack)) {
     return 0;
   }

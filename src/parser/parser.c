@@ -1,5 +1,8 @@
 #include "parser.h"
 
+Symbol symtab[SYMTAB_MAX];
+int symcount = 0;
+
 int init_parser(Parser *parser, Pointer *pointer) {
   if (parser == NULL || pointer == NULL)
     return 0;
@@ -58,21 +61,35 @@ int parse(Parser *p, ParseStack *stack) {
   printf("\n================================================\n");
   printf("END AST ========================================\n");
   printf("================================================\n");
+  symtab_print();
   return 1;
 }
 
 int handle_action(StackItem *item, NodeStack *node_stack) {
   // para cada ação tem um número de filhos esperado.
-  // Ex: um if else significa experar um
+  // Ex: um if else significa esperar uma expressão, depois mais dois blocos
+  // já um if é só uma expressão e depois um bloco
   switch (item->action) {
   case ACT_BUILD_BINARY:
     return node_stack_reduce(node_stack, AST_BINARY_EXPR, item->token, 2);
   case ACT_BUILD_ASSIGN:
     return node_stack_reduce(node_stack, AST_ASSIGNMENT, item->token, 2);
   case ACT_BUILD_VARDECL:
-    return node_stack_reduce(node_stack, AST_VAR_DECLARATION, item->token, 2);
-  case ACT_BUILD_VARDECL_INIT:
-    return node_stack_reduce(node_stack, AST_VAR_DECLARATION, item->token, 3);
+  case ACT_BUILD_VARDECL_INIT: {
+    int n = (item->action == ACT_BUILD_VARDECL) ? 2 : 3;
+    if (!node_stack_reduce(node_stack, AST_VAR_DECLARATION, item->token, n))
+      return 0;
+    ASTNode *decl;
+    node_stack_peek_top(node_stack, &decl);
+    Token *type = decl->children[0]->token;
+    Token *id = decl->children[1]->token;
+    if (!symtab_insert(id->lex, type->lex, id->row, id->col)) {
+      syntax_error("Variavel ja declarada");
+      prt_token(id, 1);
+      return 0;
+    }
+    return 1;
+  }
   case ACT_BUILD_IF:
     return node_stack_reduce(node_stack, AST_IF, item->token, 2);
   case ACT_BUILD_IF_ELSE:
@@ -437,7 +454,6 @@ int apply_production(ParseStack *stack, NodeStack *node_stack, Production produc
     return parse_stack_push_many(stack, 1, SYMBOL(SYM_CHAR_LITERAL));
 
   case PROD_FACTOR_LPAREN_EXPR_RPAREN:
-    // Parênteses só agrupam: EXPR deixa 1 nó, '(' e ')' são silenciosos.
     return parse_stack_push_many(stack, 3, SYMBOL(SYM_RPAREN), SYMBOL(SYM_EXPR), SYMBOL(SYM_LPAREN));
 
   case PROD_TYPE_INT:
@@ -490,4 +506,34 @@ char *token_to_mips_instruction(Token *token) {
   default:
     return NULL;
   }
+}
+
+Symbol *symtab_get(char *name) {
+  for (int i = 0; i < symcount; i++)
+    if (strcmp(symtab[i].name, name) == 0)
+      return &symtab[i];
+  return NULL;
+}
+
+int symtab_insert(char *name, char *type, int row, int col) {
+  if (symtab_get(name) != NULL)
+    return 0;
+  if (symcount >= SYMTAB_MAX)
+    return 0;
+  symtab[symcount].name = name;
+  symtab[symcount].type = type;
+  symtab[symcount].row = row;
+  symtab[symcount].col = col;
+  symcount++;
+  return 1;
+}
+
+void symtab_print(void) {
+  printf("================================================\n");
+  printf("SYMBOL TABLE (%d) ==============================\n", symcount);
+  printf("================================================\n");
+  for (int i = 0; i < symcount; i++) {
+    printf("  [%d] name: %-12s type: %-8s (row %d, col %d)\n", i, symtab[i].name, symtab[i].type, symtab[i].row, symtab[i].col);
+  }
+  printf("================================================\n");
 }
