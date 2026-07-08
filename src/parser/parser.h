@@ -29,6 +29,7 @@ int handle_terminal_top(StackItem * current_item, Token *current_token, Parser *
 int handle_non_terminal_top(StackItem * current_item, Token * current_token, ParseStack * stack, NodeStack * node_stack);
 int handle_action(StackItem *item, NodeStack *node_stack);
 int build_block(NodeStack *node_stack);
+char *token_to_mips_instruction(Token *token);
 
 
 #endif

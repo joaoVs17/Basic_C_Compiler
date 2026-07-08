@@ -62,8 +62,8 @@ int parse(Parser *p, ParseStack *stack) {
 }
 
 int handle_action(StackItem *item, NodeStack *node_stack) {
-  // para cada ação tem um número de filhos esperado. 
-  // Ex: um if else significa experar um 
+  // para cada ação tem um número de filhos esperado.
+  // Ex: um if else significa experar um
   switch (item->action) {
   case ACT_BUILD_BINARY:
     return node_stack_reduce(node_stack, AST_BINARY_EXPR, item->token, 2);
@@ -80,9 +80,9 @@ int handle_action(StackItem *item, NodeStack *node_stack) {
   case ACT_BUILD_WHILE:
     return node_stack_reduce(node_stack, AST_WHILE, item->token, 2);
   case ACT_OPEN_BLOCK:
-    return node_stack_push(node_stack, NULL); 
+    return node_stack_push(node_stack, NULL);
   case ACT_BUILD_BLOCK:
-    return build_block(node_stack); 
+    return build_block(node_stack);
   default:
     return 0;
   }
@@ -94,14 +94,14 @@ int build_block(NodeStack *node_stack) {
   int n = 0;
   ASTNode *top;
   while (node_stack_pop(node_stack, &top) && top != NULL) {
-    //Quando top for NULL chegou no ACT_OPEN_BLOCK. Terminou de escrever o bloco
+    // Quando top for NULL chegou no ACT_OPEN_BLOCK. Terminou de escrever o bloco
     tmp[n] = top;
     n++;
   }
   for (int i = n - 1; i >= 0; i--) {
-    //Os itens desempilhados estão de trás pra frente.
-    //o primeiro desempilhado é na prática o último que deveria ser escrito  
-    add_child(block, tmp[i]); 
+    // Os itens desempilhados estão de trás pra frente.
+    // o primeiro desempilhado é na prática o último que deveria ser escrito
+    add_child(block, tmp[i]);
   }
   return node_stack_push(node_stack, block);
 }
@@ -454,5 +454,40 @@ int apply_production(ParseStack *stack, NodeStack *node_stack, Production produc
 
   default:
     return 0;
+  }
+}
+
+char *token_to_mips_instruction(Token *token) {
+  switch (token_to_symbol(token)) {
+  // aritméticos
+  case SYM_PLUS:
+    return "add";
+  case SYM_MINUS:
+    return "sub";
+  case SYM_MULTIPLY:
+    return "mul";
+  case SYM_DIVIDE:
+    return "div";
+  // relacionais (pseudo-instruções do MARS/SPIM)
+  case SYM_LESS:
+    return "slt";
+  case SYM_LESS_EQUAL:
+    return "sle";
+  case SYM_GREATER:
+    return "sgt";
+  case SYM_GREATER_EQUAL:
+    return "sge";
+  // igualdade
+  case SYM_EQUAL:
+    return "seq";
+  case SYM_NOT_EQUAL:
+    return "sne";
+  // lógicos
+  case SYM_AND:
+    return "and";
+  case SYM_OR:
+    return "or";
+  default:
+    return NULL;
   }
 }
